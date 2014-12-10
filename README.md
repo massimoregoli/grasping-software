@@ -1,4 +1,0 @@
-grasping-software
-=================
-
-Grasping software
