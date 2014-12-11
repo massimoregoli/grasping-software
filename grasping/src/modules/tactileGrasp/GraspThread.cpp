@@ -24,6 +24,7 @@
 #include <sstream>
 #include <algorithm>
 #include <ctime>
+#include <cmath>
 
 #include <yarp/os/Property.h>
 #include <yarp/os/Network.h>
@@ -568,7 +569,7 @@ void GraspThread::run(void) {
 							fileName << (int)op1VoltageToUse << "_" << (int)newVoltage << ".csv";
 						
 						
-							outputFile.open(fileName.str(), std::ofstream::out | std::ofstream::app);
+							outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 						
 							op1GlobalCounter = -1;
 
@@ -654,7 +655,7 @@ void GraspThread::run(void) {
 							std::ostringstream fileName(std::ostringstream::ate);
 							fileName.str("");
 							fileName << (int)initialVoltage << "_to_" << (int)op2MaxVoltage << "_by_" << (int)op2VoltageStep << ".csv";
-							outputFile.open(fileName.str(), std::ofstream::out | std::ofstream::app);
+							outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 							outputFile << "Volt;MaxF;SumF;Deg\n";
 							cout << "FILE " << fileName.str() << " OPENED\n";
 
@@ -731,7 +732,7 @@ void GraspThread::run(void) {
 							std::ostringstream trackFileName(std::ostringstream::ate);
 							trackFileName.str("");
 							trackFileName << op3TrackingNum << "_tracking_back_" << (int)(-op3BackVoltage) << "_for_" << op3BackSteps << "_steps.csv";
-							trackFile.open(trackFileName.str(), std::ofstream::out | std::ofstream::app);
+							trackFile.open(trackFileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 							trackFile << "Volt;MaxF;SumF;Deg\n";
 							op3TrackingNum++;
 							cout << "TRACKING FILE " << trackFileName.str() << " OPENED\n";
@@ -752,7 +753,7 @@ void GraspThread::run(void) {
 								std::ostringstream averageFileName(std::ostringstream::ate);
 								averageFileName.str("");
 								averageFileName << "average_from_" << (int)initialVoltage << ".csv";
-								averageFile.open(averageFileName.str(), std::ofstream::out | std::ofstream::app);
+								averageFile.open(averageFileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 								averageFile << "Volt;MaxF;SumF;Deg\n";
 								cout << "FILE " << averageFileName.str() << " OPENED\n";
 
@@ -760,7 +761,7 @@ void GraspThread::run(void) {
 								std::ostringstream trackFileName(std::ostringstream::ate);
 								trackFileName.str("");
 								trackFileName << "tracking_from_" << (int)initialVoltage << "_to_0.csv";
-								trackFile.open(trackFileName.str(), std::ofstream::out | std::ofstream::app);
+								trackFile.open(trackFileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 								trackFile << "Volt;MaxF;SumF;Deg\n";
 								cout << "FILE " << trackFileName.str() << " OPENED\n";
 
@@ -844,7 +845,7 @@ void GraspThread::run(void) {
 										std::ostringstream trackFileName(std::ostringstream::ate);
 										trackFileName.str("");
 										trackFileName << op3TrackingNum << "_tracking_back_" << (int)(-op3BackVoltage) << "_for_" << op3BackSteps << "_steps.csv";
-										trackFile.open(trackFileName.str(), std::ofstream::out | std::ofstream::app);
+										trackFile.open(trackFileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 										trackFile << "Volt;MaxF;SumF;Deg\n";
 										op3TrackingNum++;
 										cout << "TRACKING FILE " << trackFileName.str() << " OPENED\n";
@@ -926,7 +927,7 @@ void GraspThread::run(void) {
 							fileName << "grasping_data_kol" << (int)(op4KOL * 100) << "_kposdir" << (int)(op4KPosDir * 100) << "_kp" << (int)(op4kp * 100) << "_ki" << (int)(op4ki * 100) << "_sum" << sumContactsRif << ".csv";
 						}
 
-						outputFile.open(fileName.str(), std::ofstream::out | std::ofstream::app);
+						outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 
 						cout << "FILE " << fileName.str() << " OPENED\n";
 
@@ -936,7 +937,7 @@ void GraspThread::run(void) {
 						fileName2.str("");
 						fileName2 << "grasping_data_detail" << (int)(op4kp * 100) << "_sum" << sumContactsRif << ".csv";
 						
-						detailFile.open(fileName2.str(), std::ofstream::out | std::ofstream::app);
+						detailFile.open(fileName2.str().c_str(), std::ofstream::out | std::ofstream::app);
 
 						cout << "FILE " << fileName2.str() << " OPENED\n";
 
@@ -1104,7 +1105,7 @@ void GraspThread::run(void) {
 							fileName << myDate << "_T" << op5TestNumber << "_" << (int)op1VoltageToUse << "_" << (int)newVoltage << ".csv";
 						
 						
-							outputFile.open(fileName.str(), std::ofstream::out | std::ofstream::app);
+							outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 						
 							op1GlobalCounter = -1;
 
@@ -1489,7 +1490,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 			fName.str("");
 			fName << "nomeTest_" << (int)aThreshold << ".csv";
 						
-			outputFile.open(fName.str(), std::ofstream::out | std::ofstream::app);
+			outputFile.open(fName.str().c_str(), std::ofstream::out | std::ofstream::app);
 			outputFile << "un due tre prova\n" << aThreshold << "\n";
 			outputFile.close();
 		}

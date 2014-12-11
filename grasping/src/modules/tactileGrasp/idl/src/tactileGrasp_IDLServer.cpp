@@ -9,81 +9,33 @@
 class tactileGrasp_IDLServer_open : public yarp::os::Portable {
 public:
   bool _return;
-  virtual bool write(yarp::os::ConnectionWriter& connection) {
-    yarp::os::idl::WireWriter writer(connection);
-    if (!writer.writeListHeader(1)) return false;
-    if (!writer.writeTag("open",1,1)) return false;
-    return true;
-  }
-  virtual bool read(yarp::os::ConnectionReader& connection) {
-    yarp::os::idl::WireReader reader(connection);
-    if (!reader.readListReturn()) return false;
-    if (!reader.readBool(_return)) {
-      reader.fail();
-      return false;
-    }
-    return true;
-  }
+  void init();
+  virtual bool write(yarp::os::ConnectionWriter& connection);
+  virtual bool read(yarp::os::ConnectionReader& connection);
 };
 
 class tactileGrasp_IDLServer_grasp : public yarp::os::Portable {
 public:
   bool _return;
-  virtual bool write(yarp::os::ConnectionWriter& connection) {
-    yarp::os::idl::WireWriter writer(connection);
-    if (!writer.writeListHeader(1)) return false;
-    if (!writer.writeTag("grasp",1,1)) return false;
-    return true;
-  }
-  virtual bool read(yarp::os::ConnectionReader& connection) {
-    yarp::os::idl::WireReader reader(connection);
-    if (!reader.readListReturn()) return false;
-    if (!reader.readBool(_return)) {
-      reader.fail();
-      return false;
-    }
-    return true;
-  }
+  void init();
+  virtual bool write(yarp::os::ConnectionWriter& connection);
+  virtual bool read(yarp::os::ConnectionReader& connection);
 };
 
 class tactileGrasp_IDLServer_crush : public yarp::os::Portable {
 public:
   bool _return;
-  virtual bool write(yarp::os::ConnectionWriter& connection) {
-    yarp::os::idl::WireWriter writer(connection);
-    if (!writer.writeListHeader(1)) return false;
-    if (!writer.writeTag("crush",1,1)) return false;
-    return true;
-  }
-  virtual bool read(yarp::os::ConnectionReader& connection) {
-    yarp::os::idl::WireReader reader(connection);
-    if (!reader.readListReturn()) return false;
-    if (!reader.readBool(_return)) {
-      reader.fail();
-      return false;
-    }
-    return true;
-  }
+  void init();
+  virtual bool write(yarp::os::ConnectionWriter& connection);
+  virtual bool read(yarp::os::ConnectionReader& connection);
 };
 
 class tactileGrasp_IDLServer_quit : public yarp::os::Portable {
 public:
   bool _return;
-  virtual bool write(yarp::os::ConnectionWriter& connection) {
-    yarp::os::idl::WireWriter writer(connection);
-    if (!writer.writeListHeader(1)) return false;
-    if (!writer.writeTag("quit",1,1)) return false;
-    return true;
-  }
-  virtual bool read(yarp::os::ConnectionReader& connection) {
-    yarp::os::idl::WireReader reader(connection);
-    if (!reader.readListReturn()) return false;
-    if (!reader.readBool(_return)) {
-      reader.fail();
-      return false;
-    }
-    return true;
-  }
+  void init();
+  virtual bool write(yarp::os::ConnectionWriter& connection);
+  virtual bool read(yarp::os::ConnectionReader& connection);
 };
 
 class tactileGrasp_IDLServer_setThreshold : public yarp::os::Portable {
@@ -91,28 +43,127 @@ public:
   int32_t aFinger;
   double aThreshold;
   bool _return;
-  virtual bool write(yarp::os::ConnectionWriter& connection) {
-    yarp::os::idl::WireWriter writer(connection);
-    if (!writer.writeListHeader(3)) return false;
-    if (!writer.writeTag("setThreshold",1,1)) return false;
-    if (!writer.writeI32(aFinger)) return false;
-    if (!writer.writeDouble(aThreshold)) return false;
-    return true;
-  }
-  virtual bool read(yarp::os::ConnectionReader& connection) {
-    yarp::os::idl::WireReader reader(connection);
-    if (!reader.readListReturn()) return false;
-    if (!reader.readBool(_return)) {
-      reader.fail();
-      return false;
-    }
-    return true;
-  }
+  void init(const int32_t aFinger, const double aThreshold);
+  virtual bool write(yarp::os::ConnectionWriter& connection);
+  virtual bool read(yarp::os::ConnectionReader& connection);
 };
 
+bool tactileGrasp_IDLServer_open::write(yarp::os::ConnectionWriter& connection) {
+  yarp::os::idl::WireWriter writer(connection);
+  if (!writer.writeListHeader(1)) return false;
+  if (!writer.writeTag("open",1,1)) return false;
+  return true;
+}
+
+bool tactileGrasp_IDLServer_open::read(yarp::os::ConnectionReader& connection) {
+  yarp::os::idl::WireReader reader(connection);
+  if (!reader.readListReturn()) return false;
+  if (!reader.readBool(_return)) {
+    reader.fail();
+    return false;
+  }
+  return true;
+}
+
+void tactileGrasp_IDLServer_open::init() {
+  _return = false;
+}
+
+bool tactileGrasp_IDLServer_grasp::write(yarp::os::ConnectionWriter& connection) {
+  yarp::os::idl::WireWriter writer(connection);
+  if (!writer.writeListHeader(1)) return false;
+  if (!writer.writeTag("grasp",1,1)) return false;
+  return true;
+}
+
+bool tactileGrasp_IDLServer_grasp::read(yarp::os::ConnectionReader& connection) {
+  yarp::os::idl::WireReader reader(connection);
+  if (!reader.readListReturn()) return false;
+  if (!reader.readBool(_return)) {
+    reader.fail();
+    return false;
+  }
+  return true;
+}
+
+void tactileGrasp_IDLServer_grasp::init() {
+  _return = false;
+}
+
+bool tactileGrasp_IDLServer_crush::write(yarp::os::ConnectionWriter& connection) {
+  yarp::os::idl::WireWriter writer(connection);
+  if (!writer.writeListHeader(1)) return false;
+  if (!writer.writeTag("crush",1,1)) return false;
+  return true;
+}
+
+bool tactileGrasp_IDLServer_crush::read(yarp::os::ConnectionReader& connection) {
+  yarp::os::idl::WireReader reader(connection);
+  if (!reader.readListReturn()) return false;
+  if (!reader.readBool(_return)) {
+    reader.fail();
+    return false;
+  }
+  return true;
+}
+
+void tactileGrasp_IDLServer_crush::init() {
+  _return = false;
+}
+
+bool tactileGrasp_IDLServer_quit::write(yarp::os::ConnectionWriter& connection) {
+  yarp::os::idl::WireWriter writer(connection);
+  if (!writer.writeListHeader(1)) return false;
+  if (!writer.writeTag("quit",1,1)) return false;
+  return true;
+}
+
+bool tactileGrasp_IDLServer_quit::read(yarp::os::ConnectionReader& connection) {
+  yarp::os::idl::WireReader reader(connection);
+  if (!reader.readListReturn()) return false;
+  if (!reader.readBool(_return)) {
+    reader.fail();
+    return false;
+  }
+  return true;
+}
+
+void tactileGrasp_IDLServer_quit::init() {
+  _return = false;
+}
+
+bool tactileGrasp_IDLServer_setThreshold::write(yarp::os::ConnectionWriter& connection) {
+  yarp::os::idl::WireWriter writer(connection);
+  if (!writer.writeListHeader(3)) return false;
+  if (!writer.writeTag("setThreshold",1,1)) return false;
+  if (!writer.writeI32(aFinger)) return false;
+  if (!writer.writeDouble(aThreshold)) return false;
+  return true;
+}
+
+bool tactileGrasp_IDLServer_setThreshold::read(yarp::os::ConnectionReader& connection) {
+  yarp::os::idl::WireReader reader(connection);
+  if (!reader.readListReturn()) return false;
+  if (!reader.readBool(_return)) {
+    reader.fail();
+    return false;
+  }
+  return true;
+}
+
+void tactileGrasp_IDLServer_setThreshold::init(const int32_t aFinger, const double aThreshold) {
+  _return = false;
+  this->aFinger = aFinger;
+  this->aThreshold = aThreshold;
+}
+
+tactileGrasp_IDLServer::tactileGrasp_IDLServer() {
+  yarp().setOwner(*this);
+}
 bool tactileGrasp_IDLServer::open() {
   bool _return = false;
   tactileGrasp_IDLServer_open helper;
+  helper.init();
   if (!yarp().canWrite()) {
     fprintf(stderr,"Missing server method '%s'?\n","bool tactileGrasp_IDLServer::open()");
   }
@@ -122,6 +173,7 @@ bool tactileGrasp_IDLServer::open() {
 bool tactileGrasp_IDLServer::grasp() {
   bool _return = false;
   tactileGrasp_IDLServer_grasp helper;
+  helper.init();
   if (!yarp().canWrite()) {
     fprintf(stderr,"Missing server method '%s'?\n","bool tactileGrasp_IDLServer::grasp()");
   }
@@ -131,6 +183,7 @@ bool tactileGrasp_IDLServer::grasp() {
 bool tactileGrasp_IDLServer::crush() {
   bool _return = false;
   tactileGrasp_IDLServer_crush helper;
+  helper.init();
   if (!yarp().canWrite()) {
     fprintf(stderr,"Missing server method '%s'?\n","bool tactileGrasp_IDLServer::crush()");
   }
@@ -140,6 +193,7 @@ bool tactileGrasp_IDLServer::crush() {
 bool tactileGrasp_IDLServer::quit() {
   bool _return = false;
   tactileGrasp_IDLServer_quit helper;
+  helper.init();
   if (!yarp().canWrite()) {
     fprintf(stderr,"Missing server method '%s'?\n","bool tactileGrasp_IDLServer::quit()");
   }
@@ -149,8 +203,7 @@ bool tactileGrasp_IDLServer::quit() {
 bool tactileGrasp_IDLServer::setThreshold(const int32_t aFinger, const double aThreshold) {
   bool _return = false;
   tactileGrasp_IDLServer_setThreshold helper;
-  helper.aFinger = aFinger;
-  helper.aThreshold = aThreshold;
+  helper.init(aFinger,aThreshold);
   if (!yarp().canWrite()) {
     fprintf(stderr,"Missing server method '%s'?\n","bool tactileGrasp_IDLServer::setThreshold(const int32_t aFinger, const double aThreshold)");
   }
@@ -163,6 +216,8 @@ bool tactileGrasp_IDLServer::read(yarp::os::ConnectionReader& connection) {
   reader.expectAccept();
   if (!reader.readListHeader()) { reader.fail(); return false; }
   yarp::os::ConstString tag = reader.readTag();
+  bool direct = (tag=="__direct__");
+  if (direct) tag = reader.readTag();
   while (!reader.isError()) {
     // TODO: use quick lookup, this is just a test
     if (tag == "open") {

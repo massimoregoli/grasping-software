@@ -120,7 +120,7 @@ namespace iCub {
 				double kBackParam;
 				double kVoltage;
 				int counter;
-				std::vector<std::vector<double>> dataCollection;
+				std::vector<std::vector<double> > dataCollection;
 				bool stopCounter,counterLoop;
 				bool stdLogging;
 				int counterMax;
