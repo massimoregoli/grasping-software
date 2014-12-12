@@ -1063,7 +1063,6 @@ void GraspThread::run(void) {
 					
 					if (op1Mode == -1){
 						op1VoltageToUse = 0.0;
-						op5TestNumber++;
 					} else if (op1Mode == 0){
 						if (voltageVector.size() > 0){
 							op1VoltageToUse = 0.0;
@@ -1072,6 +1071,7 @@ void GraspThread::run(void) {
 							voltageCounter = 0;						
 						} else {
 							op1Mode = -1;
+							op5TestNumber++;
 							cout << "THE END\n";
 						}
 
@@ -1386,6 +1386,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				"\t- >1002: op4MaxIntegrErr (" << op4MaxIntegrErr << ")" << "\n" <<
 				"23) voltage direction (+1|-1) (" << voltageDirection << ")" << "\n" <<
 				"24) voltage vector ( " << voltageList.str() << ")" << "\n" <<
+				"25) set test number ( " << op5TestNumber << ")" << "\n"
 				"-----------------------" << "\n";
 		return true;
 	}
@@ -1609,6 +1610,10 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 			}
 
 			cout << "voltage vectors values: " << voltageList.str() << "\n";
+		}
+		if (aFinger == 25){
+			op5TestNumber = aThreshold;
+			cout << "new test number: " << op5TestNumber << "\n";
 		}
 
 		return true;
