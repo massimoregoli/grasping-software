@@ -104,7 +104,7 @@ bool GraspThread::threadInit(void) {
 
 	refVoltage = 200;
 
-	operationMode = 4;
+	operationMode = 6;
 	op1Mode = 0;
 	op1UseVoltage = false;
 	initialVoltage = 260.0;
@@ -141,10 +141,11 @@ bool GraspThread::threadInit(void) {
 
 	op5TestNumber = 0;
 
-	voltageDirection = -1;
+	voltageDirection = 1;
 
 	voltageVector.push_back(360.0);
 	voltageVector.push_back(460.0);
+	voltageVector.push_back(360.0);
 	//voltageVector.push_back(450.0);
 	//voltageVector.push_back(500.0);
 
@@ -322,20 +323,22 @@ void GraspThread::run(void) {
 	if (operationMode == -1){
 	
 		if (velocities.grasp.size() > 0) {
-			deque<bool> contacts (false, nFingers);
-			vector<double> graspVelocities(nJointsVel, 0);
-			vector<double> maxContacts(nFingers);
-			vector<double> sumContacts(nFingers,0.0);
-			std::vector<double> fingerTaxelValues;
+			//deque<bool> contacts (false, nFingers);
+			//vector<double> graspVelocities(nJointsVel, 0);
+			//vector<double> maxContacts(nFingers);
+			//vector<double> sumContacts(nFingers,0.0);
+			//std::vector<double> fingerTaxelValues;
 
 			if (sampleCounter == 0){
 				setControlMode(VOCAB_CM_OPENLOOP,true);
+                cout << "OPENLOOP SET\n";
 			}
 			iOLC->setRefOutput(jointToMove,voltageDirection*refVoltage);
-
-			if (sampleCounter%10 == 0){
-			detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues);
-				cout << sumContacts[fingerToMove] << "\t" << maxContacts[fingerToMove] << "\n";
+            
+			if (sampleCounter%20 == 0){
+                cout << "setRefOutput: joint " << jointToMove << "  voltage " << voltageDirection*refVoltage << "\n";			
+            //detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues);
+			//	cout << sumContacts[fingerToMove] << "\t" << maxContacts[fingerToMove] << "\n";
 			}
 			sampleCounter++;
 		}	
@@ -1184,6 +1187,7 @@ void GraspThread::run(void) {
 								op1Counter = 0;
 							} else {
 								op1Mode = -1;
+                                op5TestNumber++;
 								cout << "THE END\n";
 							}
 							op1GlobalCounter++;
@@ -1638,11 +1642,11 @@ bool GraspThread::openHand(void) {
     //iPos->positionMove(13, 0);
     //iPos->positionMove(14, 0);
     //iPos->positionMove(15, 40);
-	
+
 	iPos->positionMove(11, 5);
     iPos->positionMove(12, 19);
     iPos->positionMove(13, 3);
-    iPos->positionMove(14, 0);
+    iPos->positionMove(14, 20);
     iPos->positionMove(15, 17);
 
     // Check motion done
@@ -1667,7 +1671,7 @@ bool GraspThread::reachArm(void) {
     //iPos->positionMove(1 , 35);
     //iPos->positionMove(2 , 18);
     //iPos->positionMove(3 , 22);
-    //iPos->positionMove(4 ,-67);
+    iPos->positionMove(4 ,-13);
     //iPos->positionMove(5 , 9);
     //iPos->positionMove(6 , -5);
     //iPos->positionMove(7 , 20);
@@ -1687,7 +1691,7 @@ bool GraspThread::reachArm(void) {
     iPos->positionMove(11, 5);
     iPos->positionMove(12, 19);
     iPos->positionMove(13, 3);
-    iPos->positionMove(14, 0);
+    iPos->positionMove(14, 20);
     iPos->positionMove(15, 17);
 
     // Check motion done
@@ -1820,15 +1824,24 @@ bool GraspThread::setControlMode(int controlMode,bool checkCurrent){
 	}
 
 	if (checkCurrent){
-		int currentControlMode;
+		int currentControlMode = -1;
 		if (iCtrl->getControlMode(jointToMove,&currentControlMode)){
 			if (currentControlMode != controlMode){
 				if  (iCtrl->setControlMode(jointToMove,controlMode)){
-					cout << "CONTROL MODE SET TO " << controlMode << "    PREV: " << previousControlMode << "  OPEN: " << VOCAB_CM_OPENLOOP << "\n";
+					cout << "CONTROL MODE SET TO " << controlMode << " ON JOINT " << jointToMove << "   PREV: " << previousControlMode << "  OPEN: " << VOCAB_CM_OPENLOOP << "\n";
 					return true;
-				} else return false;	
-			} else return true;
-		} else return false;
+				} else {
+                    cout << "failt to SET control mode on joint " << jointToMove << "\n";                   
+                    return false;
+                }	
+			} else {
+                cout << "open loop control mode already set (" << currentControlMode << ")\n";
+                return true;
+            }
+		} else {
+            cout << "failed to GET control mode from joint " << jointToMove << " (controlMode appears to be " << currentControlMode << ")\n";           
+            return false;
+        }
 	} else return iCtrl->setControlMode(jointToMove,controlMode);
 	
 //	iCtrl->setControlMode(12,controlMode);
