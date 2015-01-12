@@ -299,13 +299,13 @@ bool GraspThread::threadInit(void) {
 	cout << "PID VALUES:\n";
 	cout << "error limit: " << errorLimit << "\n";
 
-	if (iPid->getPid(jointToMove,&pid)){
-		pid.max_output = lastPosVoltage = minVoltage;
-		iPid->setPid(jointToMove,pid);
-		cout << "kp kd ki kff: " << pid.kp << " " << pid.kd << " " << pid.ki << " " << pid.kff << "\n";
-		cout << "max output: " << pid.max_output << "\n";
-		cout << "scale: " << pid.scale << "\n";
-	}
+//	if (iPid->getPid(jointToMove,&pid)){
+//		pid.max_output = lastPosVoltage = minVoltage;
+//		iPid->setPid(jointToMove,pid);
+//		cout << "kp kd ki kff: " << pid.kp << " " << pid.kd << " " << pid.ki << " " << pid.kff << "\n";
+//		cout << "max output: " << pid.max_output << "\n";
+//		cout << "scale: " << pid.scale << "\n";
+//	}
 
 
     return true;
