@@ -77,8 +77,8 @@ bool GraspThread::threadInit(void) {
 
 	
 	jointVelocity = 10.0;
-	jointToMove = 13;
-	fingerToMove = 1;
+	jointToMove = 11;
+	fingerToMove = 0;
 	usedVoltage = false;
 	thresholdParam = 10.0;
 	touchToReach = 40.0;
@@ -1064,6 +1064,20 @@ void GraspThread::run(void) {
 				vector<double> fingerTaxelValues(12);
 				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
 					
+                    int secondsToWait;
+
+                    if (op1Mode == 2 || op1Mode == 3){
+                        if (voltageCounter == 0){
+                            secondsToWait = 10;
+                        } else if (voltageCounter == 1){
+                            secondsToWait = 7;
+                        } else if (voltageCounter == 2){
+                            secondsToWait = 7;
+                        } else {
+                            secondsToWait = 7;
+                        }
+                    }
+
 					if (op1Mode == -1){
 						op1VoltageToUse = 0.0;
 					} else if (op1Mode == 0){
@@ -1144,7 +1158,7 @@ void GraspThread::run(void) {
 						} else {
 							op1Mode = 3;
 							op1Counter = 0;
-							cout << "CHANGING VOLTAGE FROM " << op1VoltageToUse << " TO " << voltageVector[voltageCounter] << "\nwaiting 5 sec...\n";
+							cout << "CHANGING VOLTAGE FROM " << op1VoltageToUse << " TO " << voltageVector[voltageCounter] << "\nwaiting " << secondsToWait << " sec...\n";
 							op1VoltageToUse = voltageVector[voltageCounter];
 						}
 						op1GlobalCounter++;
@@ -1165,8 +1179,8 @@ void GraspThread::run(void) {
 						iEncs->getEncoder(jointToMove + 1,&fingerDistalEnc);
 						iOLC->getOutput(jointToMove,&fingerProximalOutput);
 						iOLC->getOutput(jointToMove + 1,&fingerDistalOutput);
-							
-						if (op1Counter < 50*5){
+
+						if (op1Counter < 50*secondsToWait){
 							//if (op1Counter < op1NumMaxVoltage && voltageCounter == 0){
 							//	op1VoltageToUse = op1MaxVoltage;
 							//} else  {
@@ -1645,8 +1659,8 @@ bool GraspThread::openHand(void) {
 
 	iPos->positionMove(11, 5);
     iPos->positionMove(12, 19);
-    iPos->positionMove(13, 3);
-    iPos->positionMove(14, 20);
+    iPos->positionMove(13, 3);// 3
+    iPos->positionMove(14, 20);// 20
     iPos->positionMove(15, 17);
 
     // Check motion done
@@ -1685,13 +1699,13 @@ bool GraspThread::reachArm(void) {
     //iPos->positionMove(14, 0);
     //iPos->positionMove(15, 40);
 
-	//iPos->positionMove(8 , 60);
-	//iPos->positionMove(9 , 36);
-	//iPos->positionMove(10, 7);
+	iPos->positionMove(8 , 90);// not grasping 60
+	iPos->positionMove(9 , 24);// 36
+	iPos->positionMove(10, 46);// 7
     iPos->positionMove(11, 5);
     iPos->positionMove(12, 19);
-    iPos->positionMove(13, 3);
-    iPos->positionMove(14, 20);
+    iPos->positionMove(13, 3);// 3
+    iPos->positionMove(14, 20);// 20
     iPos->positionMove(15, 17);
 
     // Check motion done
