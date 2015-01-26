@@ -77,8 +77,8 @@ bool GraspThread::threadInit(void) {
 
 	
 	jointVelocity = 10.0;
-	jointToMove = 11;
-	fingerToMove = 0;
+	jointToMove = 13;
+	fingerToMove = 1;
 	usedVoltage = false;
 	thresholdParam = 10.0;
 	touchToReach = 40.0;
@@ -141,11 +141,14 @@ bool GraspThread::threadInit(void) {
 
 	op5TestNumber = 0;
 
+	op6ContactState = 0;
+	op6FirstTimeOpenLoop = true;
+	op6FirstTimeVelocity = true;
+
 	voltageDirection = 1;
 
 	voltageVector.push_back(360.0);
 	voltageVector.push_back(460.0);
-	voltageVector.push_back(360.0);
 	//voltageVector.push_back(450.0);
 	//voltageVector.push_back(500.0);
 
@@ -336,9 +339,9 @@ void GraspThread::run(void) {
 			iOLC->setRefOutput(jointToMove,voltageDirection*refVoltage);
             
 			if (sampleCounter%20 == 0){
-                cout << "setRefOutput: joint " << jointToMove << "  voltage " << voltageDirection*refVoltage << "\n";			
-            //detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues);
-			//	cout << sumContacts[fingerToMove] << "\t" << maxContacts[fingerToMove] << "\n";
+                		cout << "setRefOutput: joint " << jointToMove << "  voltage " << voltageDirection*refVoltage << "\n";			
+            			//detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues);
+				//cout << sumContacts[fingerToMove] << "\t" << maxContacts[fingerToMove] << "\n";
 			}
 			sampleCounter++;
 		}	
@@ -907,7 +910,7 @@ void GraspThread::run(void) {
 		} else if (operationMode == 4){
 
 			if (velocities.grasp.size() > 0){
-
+		
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
@@ -1064,20 +1067,6 @@ void GraspThread::run(void) {
 				vector<double> fingerTaxelValues(12);
 				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
 					
-                    int secondsToWait;
-
-                    if (op1Mode == 2 || op1Mode == 3){
-                        if (voltageCounter == 0){
-                            secondsToWait = 10;
-                        } else if (voltageCounter == 1){
-                            secondsToWait = 7;
-                        } else if (voltageCounter == 2){
-                            secondsToWait = 7;
-                        } else {
-                            secondsToWait = 7;
-                        }
-                    }
-
 					if (op1Mode == -1){
 						op1VoltageToUse = 0.0;
 					} else if (op1Mode == 0){
@@ -1158,7 +1147,7 @@ void GraspThread::run(void) {
 						} else {
 							op1Mode = 3;
 							op1Counter = 0;
-							cout << "CHANGING VOLTAGE FROM " << op1VoltageToUse << " TO " << voltageVector[voltageCounter] << "\nwaiting " << secondsToWait << " sec...\n";
+							cout << "CHANGING VOLTAGE FROM " << op1VoltageToUse << " TO " << voltageVector[voltageCounter] << "\nwaiting 5 sec...\n";
 							op1VoltageToUse = voltageVector[voltageCounter];
 						}
 						op1GlobalCounter++;
@@ -1179,8 +1168,8 @@ void GraspThread::run(void) {
 						iEncs->getEncoder(jointToMove + 1,&fingerDistalEnc);
 						iOLC->getOutput(jointToMove,&fingerProximalOutput);
 						iOLC->getOutput(jointToMove + 1,&fingerDistalOutput);
-
-						if (op1Counter < 50*secondsToWait){
+							
+						if (op1Counter < 50*5){
 							//if (op1Counter < op1NumMaxVoltage && voltageCounter == 0){
 							//	op1VoltageToUse = op1MaxVoltage;
 							//} else  {
@@ -1201,7 +1190,7 @@ void GraspThread::run(void) {
 								op1Counter = 0;
 							} else {
 								op1Mode = -1;
-                                op5TestNumber++;
+                                				op5TestNumber++;
 								cout << "THE END\n";
 							}
 							op1GlobalCounter++;
@@ -1220,6 +1209,111 @@ void GraspThread::run(void) {
 				}
 		
 			}
+		} else if (operationMode == 6){
+
+			op6ControlType = 1;
+
+			if (velocities.grasp.size() > 0){
+
+				deque<bool> contacts (false, nFingers);
+				vector<double> maxContacts(nFingers);
+				vector<double> sumContacts(nFingers,0.0);
+				std::vector<double> fingerTaxelValues;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+
+					if (op4State == 0){
+
+						double jointToMoveEnc;
+						iEncs->getEncoder(jointToMove,&jointToMoveEnc);
+						op4PosRef = jointToMoveEnc;
+
+						std::ostringstream fileName(std::ostringstream::ate);
+						fileName.str("");
+							
+						fileName << "grasping_data_maxvel" << (int)op4MaxVel << "_kp" << (int)(op4kp * 100) << "_ki" << (int)(op4ki * 100) << "_sum" << sumContactsRif << ".csv";
+
+
+						outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
+
+						cout << "FILE " << fileName.str() << " OPENED\n";
+
+						outputFile << "N;kp;Vel;Max;Sum;Deg;IntErr" << "\n";
+
+						op4State = 1;
+
+					} else if (op4State == 1){
+						
+						double velOrPosDir;
+
+						if (!contacts[fingerToMove]){
+							
+							op6ControlType = 0;
+
+						} else {
+
+							if (!op4Contact){
+								op4Contact = true;
+							}
+
+							double error = sumContactsRif - sumContacts[fingerToMove];
+							
+							//if (op4IntegrErr + error > op4MaxIntegrErr){
+							//	op4IntegrErr = op4MaxIntegrErr;
+							//} else if (op4IntegrErr + error < op4MaxIntegrErr) {
+							//	op4IntegrErr = -op4MaxIntegrErr;
+							//} else {
+							//	op4IntegrErr += error;
+							//}
+
+							op4IntegrErr += error;
+
+							op4VelToUse = op4kp*error + op4ki*op4IntegrErr;
+							
+							if (op4VelToUse > op4MaxVel){
+								op4VelToUse = op4MaxVel;
+							}
+
+						}
+
+						double jointToMoveEnc;
+						iEncs->getEncoder(jointToMove,&jointToMoveEnc);
+
+						if (op6ControlType == 0){
+							iOLC->setRefOutput(jointToMove,op6InitialVoltage);
+							velOrPosDir = initialVoltage;
+						} else if (op6ControlType == 1){
+							iVel->velocityMove(jointToMove,op4VelToUse);
+							velOrPosDir = op4VelToUse;
+						}
+						
+						
+						if (op4LoggingEnabled){
+							outputFile << op4Counter << ";" << op4kp << ";" << velOrPosDir << ";" << maxContacts[fingerToMove] << ";" << sumContacts[fingerToMove] << ";" << jointToMoveEnc << ";" << op4IntegrErr << "\n";
+						}
+						if (op4Counter%10 == 0){
+							cout << sumContacts[fingerToMove] << "\t" << velOrPosDir << "\t" << maxContacts[fingerToMove] << "\t" << jointToMoveEnc << ";" << op4IntegrErr << "\n";
+						}
+
+						op4Counter++;
+
+						if (op4Counter == 50*20){
+							op4State = 2;
+						}
+					
+					} else if (op4State == 2){
+
+						iVel->velocityMove(jointToMove,0.0);
+						
+						outputFile.close();
+						
+						cout << "THE END!\n";
+					}
+
+
+				}
+		
+			}
+
 		}
 
 }  
@@ -1659,8 +1753,8 @@ bool GraspThread::openHand(void) {
 
 	iPos->positionMove(11, 5);
     iPos->positionMove(12, 19);
-    iPos->positionMove(13, 3);// 3
-    iPos->positionMove(14, 20);// 20
+    iPos->positionMove(13, 3);
+    iPos->positionMove(14, 20);
     iPos->positionMove(15, 17);
 
     // Check motion done
@@ -1699,13 +1793,13 @@ bool GraspThread::reachArm(void) {
     //iPos->positionMove(14, 0);
     //iPos->positionMove(15, 40);
 
-	iPos->positionMove(8 , 90);// not grasping 60
-	iPos->positionMove(9 , 24);// 36
-	iPos->positionMove(10, 46);// 7
+	//iPos->positionMove(8 , 60);
+	//iPos->positionMove(9 , 36);
+	//iPos->positionMove(10, 7);
     iPos->positionMove(11, 5);
     iPos->positionMove(12, 19);
-    iPos->positionMove(13, 3);// 3
-    iPos->positionMove(14, 20);// 20
+    iPos->positionMove(13, 3);
+    iPos->positionMove(14, 20);
     iPos->positionMove(15, 17);
 
     // Check motion done
