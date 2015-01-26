@@ -132,7 +132,7 @@ namespace iCub {
 
 				int sampleCounter;
 				double refVoltage;
-				int operationMode; // 0: normal | 1: convergency | 2: interpolation | 3: go back smoothly | 4: vel control mode | -1: do nothing
+				int operationMode; // 0: normal | 1: convergency | 2: interpolation | 3: go back smoothly | 4: vel control mode | 5: convergency modified | 6: vel control mode modified | -1: do nothing
 				int op1Mode; // 0: no contact | 1: first contact | 2: get element | 3: change voltage | -1: do nothing
 				bool op1UseVoltage; // false
 				bool op1Impulse; // false
@@ -192,6 +192,12 @@ namespace iCub {
 				double op4PosRef;
 
 				int op5TestNumber;
+
+				int op6ContactState;
+				bool op6FirstTimeOpenLoop;
+				bool op6FirstTimeVelocity;
+				bool op6ControlType; // 0 open-loop | 1 velocity
+				double op6InitialVoltage; 
 
 				int voltageDirection; // +1 | -1
 
