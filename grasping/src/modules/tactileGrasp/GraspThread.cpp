@@ -139,11 +139,21 @@ bool GraspThread::threadInit(void) {
 	op4IntegrErr = 0.0;
 	op4MaxIntegrErr = 100000.0;
 
-	op5TestNumber = 0;
+	testNumber = 0;
 
 	op6ContactState = 0;
 	op6FirstTimeOpenLoop = true;
 	op6FirstTimeVelocity = true;
+
+	op7Mode = 0;
+	op7ContrType = 3;
+	op7Kp0 = 1.0;
+	op7Ki0 = 0.0;
+	op7Kd0 = 0.0;
+	op7Kp1 = 0.0;
+	op7Ki1 = 0.05;
+	op7Kd1 = 0.0;
+	op7MaxIntegrError = 10000;
 
 	voltageDirection = 1;
 
@@ -151,6 +161,9 @@ bool GraspThread::threadInit(void) {
 	voltageVector.push_back(460.0);
 	//voltageVector.push_back(450.0);
 	//voltageVector.push_back(500.0);
+
+	pwmAndTFVector.push_back(250.0);
+	op7ContrTypeVector.push_back(-1);
 
 	
     // Build grasp parameters
@@ -1077,7 +1090,7 @@ void GraspThread::run(void) {
 							voltageCounter = 0;						
 						} else {
 							op1Mode = -1;
-							op5TestNumber++;
+							testNumber++;
 							cout << "THE END\n";
 						}
 
@@ -1108,7 +1121,7 @@ void GraspThread::run(void) {
 
 							std::ostringstream fileName(std::ostringstream::ate);
 							fileName.str("");
-							fileName << myDate << "_T" << op5TestNumber << "_" << (int)op1VoltageToUse << "_" << (int)newVoltage << ".csv";
+							fileName << myDate << "_T" << testNumber << "_" << (int)op1VoltageToUse << "_" << (int)newVoltage << ".csv";
 						
 						
 							outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
@@ -1190,7 +1203,7 @@ void GraspThread::run(void) {
 								op1Counter = 0;
 							} else {
 								op1Mode = -1;
-                                				op5TestNumber++;
+                                				testNumber++;
 								cout << "THE END\n";
 							}
 							op1GlobalCounter++;
@@ -1309,6 +1322,229 @@ void GraspThread::run(void) {
 						cout << "THE END!\n";
 					}
 
+
+				}
+		
+			}
+
+		} else if (operationMode == 7){
+
+			if (velocities.grasp.size() > 0){
+
+				deque<bool> contacts (false, nFingers);
+				vector<double> maxContacts(nFingers);
+				vector<double> sumContacts(nFingers,0.0);
+				std::vector<double> fingerTaxelValues;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+
+					// initial state
+					if (op7Mode == 0){
+						if (pwmAndTFVector.size() > 0){
+							op7Counter = 0;
+							op7VectorIndex = 0;
+							setControlMode(VOCAB_CM_OPENLOOP,false);
+							op7Mode = 1;
+							op7FileIsOpen = false;
+							testNumber++;
+							op7GlobalCounter = 0;
+						}
+						
+					} else if (op7Mode == 1){
+						
+						int secToWait;
+						double currentTarget;
+						int currentContrType;
+						currentContrType = op7ContrTypeVector[op7VectorIndex];
+						if (pwmAndTFVector[op7VectorIndex] > 0){
+							op7OpMode = 0; // pwm mode
+							currentTarget = pwmAndTFVector[op7VectorIndex];
+							secToWait = 7;
+						} else {
+							op7OpMode = 1; // control mode
+							currentTarget = -pwmAndTFVector[op7VectorIndex];
+							secToWait = 12; // qui si aspetta di più perché c'è controllo
+						}
+						if (op7VectorIndex == 0){
+							// se la mano non è ancora in contatto è meglio prolungare l'attesa, perché nei primi secondi non ci saranno dati utili
+							secToWait = secToWait + 3;
+						}
+						if (op7Counter == 0){
+							op7IntegrError = 0;
+						}
+
+						bool exLog;
+						bool fileIsOper;
+												
+
+						if (op7Counter < 50*secToWait){
+
+							if (!op7FileIsOpen){
+								// sei al primo passo in assoluto, non c'è 1 sec da aspettare come al solito, devi creare il file QUI
+
+								time_t now = time(0);
+								tm *ltm = localtime(&now);
+								char myDate[15];
+								strftime(myDate,15,"%m%d%H%M%S",ltm);
+
+								std::ostringstream fileName(std::ostringstream::ate);
+								fileName.str("");
+								std::stringstream ctrl;
+								ctrl << "C" << op7ContrTypeVector[0];
+								
+								fileName << myDate << "_T" << testNumber << "_0P_" << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str()) << ".csv";
+						
+								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
+						
+								cout << "FILE " << fileName.str() << " OPENED\n";
+							
+								// first row
+								outputFile << "0P -> " << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str());
+								outputFile << "\n";
+								outputFile << "Kpf: " << op7Kp0 << " Kif: " << op7Ki0 << " Kpb: " << op7Kp1 << " Kpb: " << op7Ki1;
+								outputFile << "\n";
+
+								//headers row
+								for (int i = 0; i < fingerTaxelValues.size(); i++){
+									outputFile << i << " ";
+								}
+								outputFile << "realVoltageProx voltageProx voltageDist degreesProx degreesDist error integrError Kp Ki \n";
+
+								op7FileIsOpen = true;
+
+								cout << "JUMPING FROM 0P TO " << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str()) << "\n";
+							}
+							exLog = true;
+							op7Counter++;
+
+						} else if (op7Counter == 50*secToWait){
+							
+							if (op7FileIsOpen){
+								// chiudi file
+								outputFile.close();
+								exLog = false;
+								op7FileIsOpen = false;
+							}
+							if (op7VectorIndex + 1 < pwmAndTFVector.size()){
+								
+								// crea file
+								time_t now = time(0);
+								tm *ltm = localtime(&now);
+								char myDate[15];
+								strftime(myDate,15,"%m%d%H%M%S",ltm);
+
+								std::ostringstream fileName(std::ostringstream::ate);
+								fileName.str("");
+								std::stringstream ctrl1,ctrl2;
+								ctrl1 << "C" << op7ContrTypeVector[op7VectorIndex];
+								ctrl1 << "C" << op7ContrTypeVector[op7VectorIndex + 1];
+								
+								fileName << myDate << "_T" << testNumber << "_" << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << "_" << fabs(pwmAndTFVector[op7VectorIndex + 1]) << (pwmAndTFVector[op7VectorIndex + 1] > 0 ? "P" : ctrl2.str()) << ".csv";
+				
+								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
+
+								cout << "FILE " << fileName.str() << " OPENED\nwaiting 2 sec...\n";
+							
+								// first row
+								int firstTarget;
+								if (op7VectorIndex >= 3){
+									outputFile << "... -> ";
+									firstTarget = op7VectorIndex - 2;
+								} else {
+									firstTarget = 0;
+								}
+								for (int i = firstTarget; i <= op7VectorIndex; i++){
+									std::stringstream ctrli;
+									ctrli << "C" << op7ContrTypeVector[i];
+									outputFile << fabs(pwmAndTFVector[i]) << (pwmAndTFVector[i] > 0 ? "P" : ctrli.str());
+									if (i < op7VectorIndex){
+										outputFile << " -> ";
+									}
+								}
+								outputFile << "\n";
+								outputFile << "Kpf: " << op7Kp0 << " Kif: " << op7Ki0 << " Kpb: " << op7Kp1 << " Kpb: " << op7Ki1;
+								outputFile << "\n";
+
+								//headers row
+								for (int i = 0; i < fingerTaxelValues.size(); i++){
+									outputFile << i << " ";
+								}
+								outputFile << "realVoltageProx voltageProx voltageDist degreesProx degreesDist error integrError Kp Ki \n";
+
+								cout << "JUMPING FROM " << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << " TO " << fabs(pwmAndTFVector[op7VectorIndex + 1]) << (pwmAndTFVector[op7VectorIndex + 1] > 0 ? "P" : ctrl2.str()) << "\n";
+
+								exLog = true;
+								op7FileIsOpen = true;
+								op7Counter++;
+							}
+							
+						} else if (op7Counter < 50*(secToWait+2)){
+							exLog = true;
+							op7Counter++;
+							// se è l'ultima passo prima del cambio di valore, si deve resettare il contatore e aggiornare l'indice del vettore, in modo da utilizzare il nuovo valore
+							if (op7Counter == 50*(secToWait+2)){
+								op7Counter = 0;
+								op7VectorIndex++;
+							}
+
+						}
+
+						double error;
+						float ki,kp;
+
+						// pwm mode
+						if (op7OpMode == 0){
+							op7PWMToUse = currentTarget;
+						}
+						// control mode
+						else if (op7OpMode == 1) {
+
+							error = currentTarget - sumContacts[fingerToMove];
+
+							if (op7ContrType == 0 || op7ContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
+								kp = op7Kp0;
+								ki = op7Ki0;
+							} else {
+								kp = op7Kp1;
+								ki = op7Ki1;
+							}
+
+							op7IntegrError += error;
+							if (op7IntegrError > op7MaxIntegrError){
+								op7IntegrError = op7MaxIntegrError;
+							} else if (op7IntegrError < -op7MaxIntegrError){
+								op7IntegrError = -op7MaxIntegrError;
+							}
+
+							op7PWMToUse = kp*error + ki*op7IntegrError;
+						}
+						// no mode selected (this shouldn't happen)
+						else {
+							op7PWMToUse = 0.0;
+						}
+						if (exLog){
+
+							for (int i = 0; i < fingerTaxelValues.size(); i++){
+								outputFile << fingerTaxelValues[i] << " ";
+							}
+							double fingerProximalEnc,fingerDistalEnc,fingerProximalOutput,fingerDistalOutput;
+							iEncs->getEncoder(jointToMove,&fingerProximalEnc);
+							iEncs->getEncoder(jointToMove + 1,&fingerDistalEnc);
+							iOLC->getOutput(jointToMove,&fingerProximalOutput);
+							iOLC->getOutput(jointToMove + 1,&fingerDistalOutput);
+							outputFile << op7PWMToUse << " " << fingerProximalOutput << " " << fingerDistalOutput << " " << fingerProximalEnc << " " << fingerDistalEnc << " " << error << " " << op7IntegrError << " " << kp << " " << ki << "\n";
+					
+							if (op7GlobalCounter == 15){
+								cout << "\t " << op7PWMToUse << "  \t" << sumContacts[fingerToMove] << "\n";
+								op7GlobalCounter = 0;
+							}
+							op7GlobalCounter++;
+						}
+
+						iOLC->setRefOutput(jointToMove,voltageDirection*op7PWMToUse);
+						
+
+					} 
+					
 
 				}
 		
@@ -1452,6 +1688,21 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 			}
 		}
 
+		std::ostringstream pwmAndTFList(std::ostringstream::ate);
+		pwmAndTFList.str("");
+		for(int i = 0; i < pwmAndTFVector.size(); i++){
+			pwmAndTFList << fabs(pwmAndTFVector[i]);
+			if (pwmAndTFVector[i] > 0) pwmAndTFList << "P";
+			else {
+				pwmAndTFList << "C" << op7ContrType;
+				if (op7ContrType == 3){
+					pwmAndTFList << "_" << op7ContrTypeVector[i];
+				}
+			}
+			if (i < pwmAndTFVector.size() - 1){
+				pwmAndTFList << " ";
+			}
+		}
 
 		cout << "-------- HELP ---------" << "\n" <<
 				"-1)  this help" << "\n" <<
@@ -1498,7 +1749,23 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				"\t- >1002: op4MaxIntegrErr (" << op4MaxIntegrErr << ")" << "\n" <<
 				"23) voltage direction (+1|-1) (" << voltageDirection << ")" << "\n" <<
 				"24) voltage vector ( " << voltageList.str() << ")" << "\n" <<
-				"25) set test number ( " << op5TestNumber << ")" << "\n"
+				"25) set test number ( " << testNumber << ")" << "\n"
+				"26) mix pwm / control mode (mode 7)" << "\n" <<
+				"\t- -1<x<1: reset pwmAndTFVector" << "\n" <<
+				"\t- 1<=x<1400: pwm" << pwmAndTFList.str() << "\n" <<
+				"\t- -500<x<-1: -(tactileFeedback + controlMode)" << "\n" <<
+				"\t- -530<x<=-500: -500-Kpf" << op7Kp0 << "\n" <<
+				"\t- -560<x<=-530: -530-Kif" << op7Ki0 << "\n" <<
+				"\t- -630<x<=-600: -600-Kpb" << op7Kp1 << "\n" <<
+				"\t- -660<x<=-630: -630-Kib" << op7Ki1 << "\n" <<
+				"\t- 1400<=x<1500: 1400 + controlMode (" << op7ContrType << ")" << "\n" <<
+				"\t- x>=1500: max integr error (" << op7MaxIntegrError << ")" << "\n" <<
+				"\t- 0<x<10: kpp (" << op4kp << ")" << "\n" <<
+				"\t- >20: sumRif (" << sumContactsRif << ")" << "\n" <<
+				"\t- 200 < x < 900: 200 + max vel (" << op4MaxVel << ")" << "\n" <<
+				"\t- 900 < x < 1000: 900 + op4ki (" << op4ki << ")" << "\n" <<
+				"\t- 1001/1000 logging enabled/disabled (" << (op4LoggingEnabled ? "enabled" : "disabled") << ")" << "\n" <<
+				"\t- >1002: op4MaxIntegrErr (" << op4MaxIntegrErr << ")" << "\n" <<
 				"-----------------------" << "\n";
 		return true;
 	}
@@ -1595,6 +1862,9 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				op1UseVoltage = false;
 				op1Mode = 0;
 				voltageCounter = 0;
+			}
+			if (operationMode == 7){
+				op7Mode = 0;
 			}
 			cout << "operation mode set to: " << operationMode << "\n";
 		}
@@ -1724,10 +1994,72 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 			cout << "voltage vectors values: " << voltageList.str() << "\n";
 		}
 		if (aFinger == 25){
-			op5TestNumber = aThreshold;
-			cout << "new test number: " << op5TestNumber << "\n";
+			testNumber = aThreshold;
+			cout << "new test number: " << testNumber << "\n";
 		}
+		if (aFinger == 26){
+			// valore di PWM o di "tactile feedback + controlMode invertito"
+			if (aThreshold > -500 && aThreshold < 1500){
+				
+				if (aThreshold > -1 && aThreshold < 1){
+					pwmAndTFVector.clear();
+					op7ContrTypeVector.clear();
+				}
+				// pwm
+				else if (aThreshold > 0){
+					pwmAndTFVector.push_back(aThreshold);
+					op7ContrTypeVector.push_back(-1);
+				}
+				// tactile feeedback + controlMode invertito
+				else {
+					int currentContrType = ((int)(-aThreshold))%5;
+					pwmAndTFVector.push_back(-aThreshold - currentContrType);
+					op7ContrTypeVector.push_back(currentContrType);
+				}
 
+				std::ostringstream pwmAndTFList(std::ostringstream::ate);
+				pwmAndTFList.str("");
+				for(int i = 0; i < pwmAndTFVector.size(); i++){
+					pwmAndTFList << fabs(pwmAndTFVector[i]);
+					if (pwmAndTFVector[i] > 0) pwmAndTFList << "P";
+					else {
+						pwmAndTFList << "C" << op7ContrType;
+						if (op7ContrType == 3){
+							pwmAndTFList << "_" << op7ContrTypeVector[i];
+						}
+					}
+					if (i < pwmAndTFVector.size() - 1){
+						pwmAndTFList << " ";
+					}
+				}
+				cout << "new target values: " << pwmAndTFList.str() << "\n";
+			}
+			// da -500 a -700 riservati per i valori kp/ki forward/backward
+			else if (aThreshold <= -500 && aThreshold > -530){
+				op7Kp0 = -aThreshold - 500;
+				cout << "new Kpf value: " << op7Kp0 << "\n";
+			}
+			else if (aThreshold <= -530 && aThreshold > -560){
+				op7Ki0 = -aThreshold - 530;
+				cout << "new Kif value: " << op7Ki0 << "\n";
+			}
+			else if (aThreshold <= -600 && aThreshold > -630){
+				op7Kp1 = -aThreshold - 600;
+				cout << "new Kpb value: " << op7Kp1 << "\n";
+			}
+			else if (aThreshold <= -630 && aThreshold > -660){
+				op7Ki1 = -aThreshold - 630;
+				cout << "new Kib value: " << op7Ki1 << "\n";
+			}
+			else if (aThreshold >= 1400 && aThreshold < 1500){
+				op7ContrType = ((int)aThreshold) - 1400;
+				cout << "new control mode: " << op7ContrType << "\n";
+			} else if (aThreshold > 1500){
+				op7ContrType = aThreshold;
+				cout << "new max integration error: " << op7ContrType << "\n";
+			}
+			
+		}
 		return true;
 	} else {
         cerr << dbgTag << "RPC::setTouchThreshold() - The specified finger is out of range. \n";

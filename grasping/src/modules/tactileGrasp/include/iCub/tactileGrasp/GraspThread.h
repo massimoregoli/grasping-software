@@ -141,6 +141,8 @@ namespace iCub {
 				int op1NumMaxVoltage;
 				int voltageCounter; // 0
 				std::vector<double> voltageVector; //
+				std::vector<double> pwmAndTFVector; // contiene sia valori di pwm sia valori di riferimenti di feedback tattile (in negativo)
+				std::vector<int> op7ContrTypeVector;
 				int op1Counter;
 				int op1GlobalCounter;
 				double op1VoltageToUse;
@@ -191,7 +193,6 @@ namespace iCub {
 				double op4MaxIntegrErr;
 				double op4PosRef;
 
-				int op5TestNumber;
 
 				int op6ContactState;
 				bool op6FirstTimeOpenLoop;
@@ -200,6 +201,25 @@ namespace iCub {
 				double op6InitialVoltage; 
 
 				int voltageDirection; // +1 | -1
+
+				int op7Mode;
+				int op7VectorIndex;
+				int op7Counter;
+				int op7OpMode; // 0 pwm mode; 1 control mode
+				int op7ContrType; // 0 best for forward; 1 best for backward; 2 use the best depending on forward or backward; 3 depending on the contr type vector
+				bool op7FileIsOpen;
+				double op7PWMToUse;
+				float op7Kp0;
+				float op7Ki0;
+				float op7Kd0;
+				float op7Kp1;
+				float op7Ki1;
+				float op7Kd1;
+				double op7IntegrError;
+				double op7MaxIntegrError;
+				int op7GlobalCounter;
+
+				int testNumber;
 
             public:
                 GraspThread(const int aPeriod, const yarp::os::ResourceFinder &aRf);
