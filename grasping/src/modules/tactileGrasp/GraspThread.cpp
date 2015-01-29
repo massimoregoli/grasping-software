@@ -1351,9 +1351,14 @@ void GraspThread::run(void) {
 						
 					} else if (op7Mode == 1){
 						
+						// sono i secondi che passano dal cambio di controllo (o nel tipo o nel valore) al termine del log di tale cambiamento
 						int secToWait;
+						// il target corrente, o di PWM o di feedback di sensori tattili
 						double currentTarget;
+						// la tipologia di controllo del target corrente, definito soltanto nel caso di controllo sul feedback, vale 0 se forward, 1 se backward, 2 se si usa il mix dei due. Questa tipologia
+						// è valida solo se la tipologia GENERICA vale 3, ovvero se op7ContrType == 3
 						int currentContrType;
+
 						currentContrType = op7ContrTypeVector[op7VectorIndex];
 						if (pwmAndTFVector[op7VectorIndex] > 0){
 							op7OpMode = 0; // pwm mode
@@ -1373,7 +1378,6 @@ void GraspThread::run(void) {
 						}
 
 						bool exLog;
-						bool fileIsOper;
 												
 
 						if (op7Counter < 50*secToWait){
@@ -1409,9 +1413,9 @@ void GraspThread::run(void) {
 								}
 								outputFile << "realVoltageProx voltageProx voltageDist degreesProx degreesDist error integrError Kp Ki \n";
 
-								op7FileIsOpen = true;
-
 								cout << "JUMPING FROM 0P TO " << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str()) << "\n";
+
+								op7FileIsOpen = true;
 							}
 							exLog = true;
 							op7Counter++;
@@ -1436,14 +1440,14 @@ void GraspThread::run(void) {
 								fileName.str("");
 								std::stringstream ctrl1,ctrl2;
 								ctrl1 << "C" << op7ContrTypeVector[op7VectorIndex];
-								ctrl1 << "C" << op7ContrTypeVector[op7VectorIndex + 1];
+								ctrl2 << "C" << op7ContrTypeVector[op7VectorIndex + 1];
 								
 								fileName << myDate << "_T" << testNumber << "_" << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << "_" << fabs(pwmAndTFVector[op7VectorIndex + 1]) << (pwmAndTFVector[op7VectorIndex + 1] > 0 ? "P" : ctrl2.str()) << ".csv";
 				
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 
 								cout << "FILE " << fileName.str() << " OPENED\nwaiting 2 sec...\n";
-							
+								
 								// first row
 								int firstTarget;
 								if (op7VectorIndex >= 3){
@@ -2013,7 +2017,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				// tactile feeedback + controlMode invertito
 				else {
 					int currentContrType = ((int)(-aThreshold))%5;
-					pwmAndTFVector.push_back(-aThreshold - currentContrType);
+					pwmAndTFVector.push_back(aThreshold + currentContrType);
 					op7ContrTypeVector.push_back(currentContrType);
 				}
 
