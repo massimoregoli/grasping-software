@@ -346,6 +346,7 @@ void GraspThread::run(void) {
 			//std::vector<double> fingerTaxelValues;
 
 			if (sampleCounter == 0){
+                cout << "DEBUG: operationMode -1 trying to set VOCAB_CM_OPENLOOP: " << VOCAB_CM_OPENLOOP << "   casted int value: " << (int)VOCAB_CM_OPENLOOP << "\n";
 				setControlMode(VOCAB_CM_OPENLOOP,true);
                 cout << "OPENLOOP SET\n";
 			}
@@ -1328,21 +1329,26 @@ void GraspThread::run(void) {
 			}
 
 		} else if (operationMode == 7){
+cout << "DEB 0" << "\n";
 
 			if (velocities.grasp.size() > 0){
+cout << "DEB 00" << "\n";
 
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
 				std::vector<double> fingerTaxelValues;
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+cout << "DEB 000" << "\n";
 
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+cout << "DEB 1" << "\n";
 					// initial state
 					if (op7Mode == 0){
 						if (pwmAndTFVector.size() > 0){
 							op7Counter = 0;
 							op7VectorIndex = 0;
 							setControlMode(VOCAB_CM_OPENLOOP,false);
+cout << "DEB 2" << "\n";
 							op7Mode = 1;
 							op7FileIsOpen = false;
 							testNumber++;
@@ -1356,7 +1362,7 @@ void GraspThread::run(void) {
 						// il target corrente, o di PWM o di feedback di sensori tattili
 						double currentTarget;
 						// la tipologia di controllo del target corrente, definito soltanto nel caso di controllo sul feedback, vale 0 se forward, 1 se backward, 2 se si usa il mix dei due. Questa tipologia
-						// è valida solo se la tipologia GENERICA vale 3, ovvero se op7ContrType == 3
+						// \E8 valida solo se la tipologia GENERICA vale 3, ovvero se op7ContrType == 3
 						int currentContrType;
 
 						currentContrType = op7ContrTypeVector[op7VectorIndex];
@@ -1367,10 +1373,10 @@ void GraspThread::run(void) {
 						} else {
 							op7OpMode = 1; // control mode
 							currentTarget = -pwmAndTFVector[op7VectorIndex];
-							secToWait = 12; // qui si aspetta di più perché c'è controllo
+							secToWait = 12; // qui si aspetta di pi\F9 perch\E9 c'\E8 controllo
 						}
 						if (op7VectorIndex == 0){
-							// se la mano non è ancora in contatto è meglio prolungare l'attesa, perché nei primi secondi non ci saranno dati utili
+							// se la mano non \E8 ancora in contatto \E8 meglio prolungare l'attesa, perch\E9 nei primi secondi non ci saranno dati utili
 							secToWait = secToWait + 3;
 						}
 						if (op7Counter == 0){
@@ -1383,7 +1389,7 @@ void GraspThread::run(void) {
 						if (op7Counter < 50*secToWait){
 
 							if (!op7FileIsOpen){
-								// sei al primo passo in assoluto, non c'è 1 sec da aspettare come al solito, devi creare il file QUI
+								// sei al primo passo in assoluto, non c'\E8 1 sec da aspettare come al solito, devi creare il file QUI
 
 								time_t now = time(0);
 								tm *ltm = localtime(&now);
@@ -1484,7 +1490,7 @@ void GraspThread::run(void) {
 						} else if (op7Counter < 50*(secToWait+2)){
 							exLog = true;
 							op7Counter++;
-							// se è l'ultima passo prima del cambio di valore, si deve resettare il contatore e aggiornare l'indice del vettore, in modo da utilizzare il nuovo valore
+							// se \E8 l'ultima passo prima del cambio di valore, si deve resettare il contatore e aggiornare l'indice del vettore, in modo da utilizzare il nuovo valore
 							if (op7Counter == 50*(secToWait+2)){
 								op7Counter = 0;
 								op7VectorIndex++;
@@ -1543,9 +1549,9 @@ void GraspThread::run(void) {
 							}
 							op7GlobalCounter++;
 						}
-
+cout << "DEB 3" << "\n";
 						iOLC->setRefOutput(jointToMove,voltageDirection*op7PWMToUse);
-						
+cout << "DEB 4" << "\n";		
 
 					} 
 					
@@ -1610,6 +1616,7 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
         vector<double>::iterator start;
         vector<double>::iterator end;
         for (int i = 0; i < nFingers; ++i) {
+
             start = contacts.begin() + 12*i;
             end = start + 11;
 			
@@ -1628,7 +1635,8 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 			}
 
             maxContacts[i] = *std::max_element(start, end);
-        }
+
+       }
 
 #ifndef NODEBUG
 //        cout << "DEBUG: " << dbgTag << "Maximum contact detected: \t\t";
@@ -1639,10 +1647,12 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 		//if (stdLogging) cout << setw(10) << maxContacts[fingerToMove] << " ";
 
 #endif
-		
+
         // Check if contact is greater than threshold
         o_contacts.resize(nFingers, false);
+
         for (size_t i = 0; i < maxContacts.size(); ++i) {
+
             o_contacts[i] = usedVoltage == true ? (maxContacts[i] >= thresholdParam - 2) : (maxContacts[i] >= thresholdParam); //touchThresholds[i]);
         }
 
@@ -1651,8 +1661,10 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 		previousMaxContact = maxContacts[fingerToMove];
 		previousSumContact = sumContacts[fingerToMove];
 
+
     } else {
 #ifndef NODEBUG
+
         if (stdLogging) cout << "DEBUG: " << dbgTag << "No skin data. \n";
         if (stdLogging) cout << "DEBUG: " << dbgTag << "Using previous skin value. \n";
 #endif
@@ -1660,6 +1672,7 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 		maxContacts[fingerToMove] = previousMaxContact;
 		sumContacts[fingerToMove] = previousSumContact;
     }
+
 
     return true;
 }
@@ -1756,20 +1769,14 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				"25) set test number ( " << testNumber << ")" << "\n"
 				"26) mix pwm / control mode (mode 7)" << "\n" <<
 				"\t- -1<x<1: reset pwmAndTFVector" << "\n" <<
-				"\t- 1<=x<1400: pwm" << pwmAndTFList.str() << "\n" <<
+				"\t- 1<=x<1400: pwm (" << pwmAndTFList.str() << ")" << "\n" <<
 				"\t- -500<x<-1: -(tactileFeedback + controlMode)" << "\n" <<
-				"\t- -530<x<=-500: -500-Kpf" << op7Kp0 << "\n" <<
-				"\t- -560<x<=-530: -530-Kif" << op7Ki0 << "\n" <<
-				"\t- -630<x<=-600: -600-Kpb" << op7Kp1 << "\n" <<
-				"\t- -660<x<=-630: -630-Kib" << op7Ki1 << "\n" <<
+				"\t- -530<x<=-500: -500-Kpf (" << op7Kp0 << ")" << "\n" <<
+				"\t- -560<x<=-530: -530-Kif (" << op7Ki0 << ")" << "\n" <<
+				"\t- -630<x<=-600: -600-Kpb (" << op7Kp1 << ")" << "\n" <<
+				"\t- -660<x<=-630: -630-Kib (" << op7Ki1 << ")" << "\n" <<
 				"\t- 1400<=x<1500: 1400 + controlMode (" << op7ContrType << ")" << "\n" <<
 				"\t- x>=1500: max integr error (" << op7MaxIntegrError << ")" << "\n" <<
-				"\t- 0<x<10: kpp (" << op4kp << ")" << "\n" <<
-				"\t- >20: sumRif (" << sumContactsRif << ")" << "\n" <<
-				"\t- 200 < x < 900: 200 + max vel (" << op4MaxVel << ")" << "\n" <<
-				"\t- 900 < x < 1000: 900 + op4ki (" << op4ki << ")" << "\n" <<
-				"\t- 1001/1000 logging enabled/disabled (" << (op4LoggingEnabled ? "enabled" : "disabled") << ")" << "\n" <<
-				"\t- >1002: op4MaxIntegrErr (" << op4MaxIntegrErr << ")" << "\n" <<
 				"-----------------------" << "\n";
 		return true;
 	}
@@ -2003,7 +2010,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 		}
 		if (aFinger == 26){
 			// valore di PWM o di "tactile feedback + controlMode invertito"
-			if (aThreshold > -500 && aThreshold < 1500){
+			if (aThreshold > -500 && aThreshold < 1400){
 				
 				if (aThreshold > -1 && aThreshold < 1){
 					pwmAndTFVector.clear();
@@ -2058,8 +2065,8 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 			else if (aThreshold >= 1400 && aThreshold < 1500){
 				op7ContrType = ((int)aThreshold) - 1400;
 				cout << "new control mode: " << op7ContrType << "\n";
-			} else if (aThreshold > 1500){
-				op7ContrType = aThreshold;
+			} else if (aThreshold >= 1500){
+				op7ContrType = ((int)aThreshold);
 				cout << "new max integration error: " << op7ContrType << "\n";
 			}
 			
@@ -2270,6 +2277,7 @@ bool GraspThread::setControlMode(int controlMode,bool checkCurrent){
 	if (checkCurrent){
 		int currentControlMode = -1;
 		if (iCtrl->getControlMode(jointToMove,&currentControlMode)){
+
 			if (currentControlMode != controlMode){
 				if  (iCtrl->setControlMode(jointToMove,controlMode)){
 					cout << "CONTROL MODE SET TO " << controlMode << " ON JOINT " << jointToMove << "   PREV: " << previousControlMode << "  OPEN: " << VOCAB_CM_OPENLOOP << "\n";
@@ -2288,6 +2296,7 @@ bool GraspThread::setControlMode(int controlMode,bool checkCurrent){
         }
 	} else return iCtrl->setControlMode(jointToMove,controlMode);
 	
+    return true;
 //	iCtrl->setControlMode(12,controlMode);
 	//iCtrl->setControlMode(13,controlMode);
 //	iCtrl->setControlMode(14,controlMode);

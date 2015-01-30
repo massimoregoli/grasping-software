@@ -196,7 +196,7 @@ bool TactileGraspModule::close() {
 /* ******* RPC Open hand                                                    ********************************************** */
 bool TactileGraspModule::open(void) {
     graspThread->suspend();
-
+    cout << "DEBUG: previousControlMode: " << previousControlMode << "\n";  
 	graspThread->setControlMode(previousControlMode,true);
 
     return graspThread->openHand();
