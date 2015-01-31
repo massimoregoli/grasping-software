@@ -219,6 +219,7 @@ namespace iCub {
 				double op7MaxIntegrError;
 				int op7GlobalCounter;
 				std::string op7CtrlStr1,op7CtrlStr2;
+                int op7UsedPreviousCounter;                
 
 				int testNumber;
 
@@ -259,7 +260,7 @@ namespace iCub {
             private:
                 bool generateJointMap(std::vector<double> &i_thresholds);
 
-                bool detectContact(std::deque<bool> &o_contacts,std::vector<double> &maxContacts,std::vector<double> &sumContacts,std::vector<double> &fingerTaxelValues);
+                bool detectContact(std::deque<bool> &o_contacts,std::vector<double> &maxContacts,std::vector<double> &sumContacts,std::vector<double> &fingerTaxelValues,bool &usedPrevious);
 
                 bool reachArm(void);
 

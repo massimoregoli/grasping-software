@@ -153,7 +153,7 @@ bool GraspThread::threadInit(void) {
 	op7Kp1 = 0.0;
 	op7Ki1 = 0.05;
 	op7Kd1 = 0.0;
-	op7MaxIntegrError = 10000;
+	op7MaxIntegrError = 100000;
 
 	voltageDirection = 1;
 
@@ -163,7 +163,11 @@ bool GraspThread::threadInit(void) {
 	//voltageVector.push_back(500.0);
 
 	pwmAndTFVector.push_back(250.0);
+	pwmAndTFVector.push_back(900.0);
+	pwmAndTFVector.push_back(-40.0);
 	op7ContrTypeVector.push_back(-1);
+	op7ContrTypeVector.push_back(-1);
+	op7ContrTypeVector.push_back(1);
 
 	
     // Build grasp parameters
@@ -339,12 +343,12 @@ void GraspThread::run(void) {
 	if (operationMode == -1){
 	
 		if (velocities.grasp.size() > 0) {
-			//deque<bool> contacts (false, nFingers);
-			//vector<double> graspVelocities(nJointsVel, 0);
-			//vector<double> maxContacts(nFingers);
-			//vector<double> sumContacts(nFingers,0.0);
-			//std::vector<double> fingerTaxelValues;
-
+			deque<bool> contacts (false, nFingers);
+			vector<double> graspVelocities(nJointsVel, 0);
+			vector<double> maxContacts(nFingers);
+			vector<double> sumContacts(nFingers,0.0);
+			std::vector<double> fingerTaxelValues;
+            bool usedPrevious;
 			if (sampleCounter == 0){
                 cout << "DEBUG: operationMode -1 trying to set VOCAB_CM_OPENLOOP: " << VOCAB_CM_OPENLOOP << "\n";
 				setControlMode(VOCAB_CM_OPENLOOP,true);
@@ -353,9 +357,9 @@ void GraspThread::run(void) {
 			iOLC->setRefOutput(jointToMove,voltageDirection*refVoltage);
             
 			if (sampleCounter%20 == 0){
-                		cout << "setRefOutput: joint " << jointToMove << "  voltage " << voltageDirection*refVoltage << "\n";			
-            			//detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues);
-				//cout << sumContacts[fingerToMove] << "\t" << maxContacts[fingerToMove] << "\n";
+                		cout << "setRefOutput: joint " << jointToMove << "\tvoltage " << voltageDirection*refVoltage;			
+            			detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious);
+				        cout << "\tsum " << sumContacts[fingerToMove] << "\n";
 			}
 			sampleCounter++;
 		}	
@@ -371,7 +375,8 @@ void GraspThread::run(void) {
 			vector<double> maxContacts(nFingers);
 			vector<double> sumContacts(nFingers,0.0);
 			std::vector<double> fingerTaxelValues;
-			if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)) {
+            bool usedPrevious;
+			if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)) {
 
 					// Loop all contacts
 					for (size_t i = 0; i < contacts.size(); ++i) {
@@ -553,8 +558,9 @@ void GraspThread::run(void) {
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
-				std::vector<double> fingerTaxelValues;
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+				std::vector<double> fingerTaxelValues(12);
+                bool usedPrevious;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)){
 					
 					if (op1Mode == -1){
 						op1VoltageToUse = 0.0;
@@ -651,8 +657,9 @@ void GraspThread::run(void) {
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
-				std::vector<double> fingerTaxelValues;
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+				std::vector<double> fingerTaxelValues(12);
+                bool usedPrevious;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)){
 					
 					if (op2Mode == -1){
 						op2VoltageToUse = 0.0;
@@ -737,8 +744,9 @@ void GraspThread::run(void) {
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
-				std::vector<double> fingerTaxelValues;
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+				std::vector<double> fingerTaxelValues(12);
+                bool usedPrevious;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)){
 					
 					if (op3Mode == -1){
 						op3VoltageToUse = 0.0;
@@ -928,8 +936,9 @@ void GraspThread::run(void) {
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
-				std::vector<double> fingerTaxelValues;
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+				std::vector<double> fingerTaxelValues(12);
+                bool usedPrevious;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)){
 
 					if (op4State == 0){
 
@@ -1079,7 +1088,8 @@ void GraspThread::run(void) {
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
 				vector<double> fingerTaxelValues(12);
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+                bool usedPrevious;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)){
 					
 					if (op1Mode == -1){
 						op1VoltageToUse = 0.0;
@@ -1233,7 +1243,8 @@ void GraspThread::run(void) {
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
 				std::vector<double> fingerTaxelValues(12);
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+                bool usedPrevious;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)){
 
 					if (op4State == 0){
 
@@ -1336,8 +1347,8 @@ void GraspThread::run(void) {
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
 				std::vector<double> fingerTaxelValues(12);
-
-				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
+                bool usedPrevious;
+				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)){
 					// initial state
 					if (op7Mode == 0){
 						if (pwmAndTFVector.size() > 0){
@@ -1348,6 +1359,7 @@ void GraspThread::run(void) {
 							op7FileIsOpen = false;
 							testNumber++;
 							op7GlobalCounter = 0;
+                            op7UsedPreviousCounter = 0;
 						}
 						
 					} else if (op7Mode == 1){
@@ -1369,6 +1381,7 @@ void GraspThread::run(void) {
 							op7OpMode = 1; // control mode
 							currentTarget = -pwmAndTFVector[op7VectorIndex];
 							secToWait = 12; // qui si aspetta di pi\F9 perch\E9 c'\E8 controllo
+                            if (currentContrType == 1) secToWait = 20;
 						}
 						if (op7VectorIndex == 0){
 							// se la mano non \E8 ancora in contatto \E8 meglio prolungare l'attesa, perch\E9 nei primi secondi non ci saranno dati utili
@@ -1379,7 +1392,8 @@ void GraspThread::run(void) {
 						}
 
 						bool exLog;
-												
+						
+                        if (usedPrevious) op7UsedPreviousCounter++;						
 
 						if (op7Counter < 50*secToWait){
 
@@ -1537,6 +1551,9 @@ void GraspThread::run(void) {
 						else {
 							op7PWMToUse = 0.0;
 						}
+
+                        if (op7PWMToUse > 1330) op7PWMToUse = 1330;
+                        else if (op7PWMToUse < -1330) op7PWMToUse = -1330;
 						if (exLog){
 
 							for (int i = 0; i < fingerTaxelValues.size(); i++){
@@ -1550,14 +1567,20 @@ void GraspThread::run(void) {
 							outputFile << op7PWMToUse << " " << fingerProximalOutput << " " << fingerDistalOutput << " " << fingerProximalEnc << " " << fingerDistalEnc << " " << error << " " << op7IntegrError << " " << kp << " " << ki << "\n";
 					
 							if (op7GlobalCounter == 15){
-								cout << "\t " << op7PWMToUse << "  \t" << sumContacts[fingerToMove] << "\n";
+								cout << "\t " << op7PWMToUse << "  \t" << sumContacts[fingerToMove] << " \t" << kp << " \t" << ki << " \t" << error << " \t" << op7IntegrError << "/" << op7MaxIntegrError;
+                                for (int i = 0; i < op7UsedPreviousCounter; i++){
+                                    cout << "*";
+                                }
+                                cout << "\n";
+                                op7UsedPreviousCounter = 0;
 							}
+                            
 							op7GlobalCounter++;
                             op7GlobalCounter = op7GlobalCounter%16;
 						}
 
-						iOLC->setRefOutput(jointToMove,voltageDirection*op7PWMToUse);
-
+   						iOLC->setRefOutput(jointToMove,voltageDirection*op7PWMToUse);
+                        
 					} 
 					
 
@@ -1602,7 +1625,7 @@ void GraspThread::threadRelease(void) {
 
 /* *********************************************************************************************************************** */
 /* ******* Detect contact on each finger.                                   ********************************************** */
-bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double> &maxContacts,std::vector<double> &sumContacts,std::vector<double> &fingerTaxelValues) {
+bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double> &maxContacts,std::vector<double> &sumContacts,std::vector<double> &fingerTaxelValues,bool &usedPrevious) {
     using yarp::sig::Vector;
     using std::deque;
     using std::vector;
@@ -1667,16 +1690,17 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
         previousContacts = o_contacts;
 		previousMaxContact = maxContacts[fingerToMove];
 		previousSumContact = sumContacts[fingerToMove];
-
+        usedPrevious = false;
 
     } else {
 #ifndef NODEBUG
 
-        if (stdLogging) cout << "DEBUG: " << dbgTag << "No skin data. Using previous skin value. \n";
+//        if (stdLogging) cout << "DEBUG: " << dbgTag << "No skin data. Using previous skin value. \n";
 #endif
         o_contacts = previousContacts;
 		maxContacts[fingerToMove] = previousMaxContact;
 		sumContacts[fingerToMove] = previousSumContact;
+        usedPrevious = true;
     }
 
     return true;
@@ -2071,8 +2095,8 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				op7ContrType = ((int)aThreshold) - 1400;
 				cout << "new control mode: " << op7ContrType << "\n";
 			} else if (aThreshold >= 1500){
-				op7ContrType = ((int)aThreshold);
-				cout << "new max integration error: " << op7ContrType << "\n";
+				op7MaxIntegrError = ((int)aThreshold);
+				cout << "new max integration error: " << op7MaxIntegrError << "\n";
 			}
 			
 		}
@@ -2288,7 +2312,7 @@ bool GraspThread::setControlMode(int controlMode,bool checkCurrent){
 					cout << "CONTROL MODE SET TO " << controlMode << " ON JOINT " << jointToMove << "   PREV: " << previousControlMode << "  OPEN: " << VOCAB_CM_OPENLOOP << "\n";
 					return true;
 				} else {
-                    cout << "failt to SET control mode on joint " << jointToMove << "\n";                   
+                    cout << "failed to SET control mode on joint " << jointToMove << "\n";                   
                     return false;
                 }	
 			} else {
