@@ -218,6 +218,7 @@ namespace iCub {
 				double op7IntegrError;
 				double op7MaxIntegrError;
 				int op7GlobalCounter;
+				std::string op7CtrlStr1,op7CtrlStr2;
 
 				int testNumber;
 

@@ -346,7 +346,7 @@ void GraspThread::run(void) {
 			//std::vector<double> fingerTaxelValues;
 
 			if (sampleCounter == 0){
-                cout << "DEBUG: operationMode -1 trying to set VOCAB_CM_OPENLOOP: " << VOCAB_CM_OPENLOOP << "   casted int value: " << (int)VOCAB_CM_OPENLOOP << "\n";
+                cout << "DEBUG: operationMode -1 trying to set VOCAB_CM_OPENLOOP: " << VOCAB_CM_OPENLOOP << "\n";
 				setControlMode(VOCAB_CM_OPENLOOP,true);
                 cout << "OPENLOOP SET\n";
 			}
@@ -1232,7 +1232,7 @@ void GraspThread::run(void) {
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
-				std::vector<double> fingerTaxelValues;
+				std::vector<double> fingerTaxelValues(12);
 				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
 
 					if (op4State == 0){
@@ -1329,26 +1329,21 @@ void GraspThread::run(void) {
 			}
 
 		} else if (operationMode == 7){
-cout << "DEB 0" << "\n";
 
 			if (velocities.grasp.size() > 0){
-cout << "DEB 00" << "\n";
 
 				deque<bool> contacts (false, nFingers);
 				vector<double> maxContacts(nFingers);
 				vector<double> sumContacts(nFingers,0.0);
-				std::vector<double> fingerTaxelValues;
-cout << "DEB 000" << "\n";
+				std::vector<double> fingerTaxelValues(12);
 
 				if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues)){
-cout << "DEB 1" << "\n";
 					// initial state
 					if (op7Mode == 0){
 						if (pwmAndTFVector.size() > 0){
 							op7Counter = 0;
 							op7VectorIndex = 0;
 							setControlMode(VOCAB_CM_OPENLOOP,false);
-cout << "DEB 2" << "\n";
 							op7Mode = 1;
 							op7FileIsOpen = false;
 							testNumber++;
@@ -1408,7 +1403,7 @@ cout << "DEB 2" << "\n";
 								cout << "FILE " << fileName.str() << " OPENED\n";
 							
 								// first row
-								outputFile << "0P -> " << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str());
+								outputFile << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str());
 								outputFile << "\n";
 								outputFile << "Kpf: " << op7Kp0 << " Kif: " << op7Ki0 << " Kpb: " << op7Kp1 << " Kpb: " << op7Ki1;
 								outputFile << "\n";
@@ -1422,8 +1417,13 @@ cout << "DEB 2" << "\n";
 								cout << "JUMPING FROM 0P TO " << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str()) << "\n";
 
 								op7FileIsOpen = true;
-							}
-							exLog = true;
+							} else if (op7Counter == 0){
+                               	cout << "JUMPING FROM " << fabs(pwmAndTFVector[op7VectorIndex - 1]) << (pwmAndTFVector[op7VectorIndex - 1] > 0 ? "P" : op7CtrlStr1) << " TO " << fabs(pwmAndTFVector[op7VectorIndex]) << (pwmAndTFVector[op7VectorIndex] > 0 ? "P" : op7CtrlStr2) << "\n";
+                            }
+                            if (op7Counter == 0){
+                                cout << "waiting for " << secToWait << " sec." << "\n";
+                            }							
+                            exLog = true;
 							op7Counter++;
 
 						} else if (op7Counter == 50*secToWait){
@@ -1431,7 +1431,8 @@ cout << "DEB 2" << "\n";
 							if (op7FileIsOpen){
 								// chiudi file
 								outputFile.close();
-								exLog = false;
+                                cout << "FILE CLOSED\n";
+								exLog = true;
 								op7FileIsOpen = false;
 							}
 							if (op7VectorIndex + 1 < pwmAndTFVector.size()){
@@ -1444,10 +1445,11 @@ cout << "DEB 2" << "\n";
 
 								std::ostringstream fileName(std::ostringstream::ate);
 								fileName.str("");
-								std::stringstream ctrl1,ctrl2;
+                                std::stringstream ctrl1,ctrl2;
 								ctrl1 << "C" << op7ContrTypeVector[op7VectorIndex];
 								ctrl2 << "C" << op7ContrTypeVector[op7VectorIndex + 1];
-								
+								op7CtrlStr1 = ctrl1.str();
+                                op7CtrlStr2 = ctrl2.str();
 								fileName << myDate << "_T" << testNumber << "_" << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << "_" << fabs(pwmAndTFVector[op7VectorIndex + 1]) << (pwmAndTFVector[op7VectorIndex + 1] > 0 ? "P" : ctrl2.str()) << ".csv";
 				
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
@@ -1456,17 +1458,17 @@ cout << "DEB 2" << "\n";
 								
 								// first row
 								int firstTarget;
-								if (op7VectorIndex >= 3){
+								if (op7VectorIndex + 1 >= 3){
 									outputFile << "... -> ";
 									firstTarget = op7VectorIndex - 2;
 								} else {
 									firstTarget = 0;
 								}
-								for (int i = firstTarget; i <= op7VectorIndex; i++){
+								for (int i = firstTarget; i <= op7VectorIndex + 1; i++){
 									std::stringstream ctrli;
 									ctrli << "C" << op7ContrTypeVector[i];
 									outputFile << fabs(pwmAndTFVector[i]) << (pwmAndTFVector[i] > 0 ? "P" : ctrli.str());
-									if (i < op7VectorIndex){
+									if (i < op7VectorIndex + 1){
 										outputFile << " -> ";
 									}
 								}
@@ -1480,12 +1482,16 @@ cout << "DEB 2" << "\n";
 								}
 								outputFile << "realVoltageProx voltageProx voltageDist degreesProx degreesDist error integrError Kp Ki \n";
 
-								cout << "JUMPING FROM " << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << " TO " << fabs(pwmAndTFVector[op7VectorIndex + 1]) << (pwmAndTFVector[op7VectorIndex + 1] > 0 ? "P" : ctrl2.str()) << "\n";
-
 								exLog = true;
 								op7FileIsOpen = true;
 								op7Counter++;
-							}
+							} else {
+							
+                                if (op7GlobalCounter == 0){
+								    cout << "WAITING FOR NEW TARGETS" << "\n";
+							    }
+                                
+                            }
 							
 						} else if (op7Counter < 50*(secToWait+2)){
 							exLog = true;
@@ -1498,8 +1504,8 @@ cout << "DEB 2" << "\n";
 
 						}
 
-						double error;
-						float ki,kp;
+						double error = 0;
+						float ki = -1,kp = -1;
 
 						// pwm mode
 						if (op7OpMode == 0){
@@ -1545,13 +1551,12 @@ cout << "DEB 2" << "\n";
 					
 							if (op7GlobalCounter == 15){
 								cout << "\t " << op7PWMToUse << "  \t" << sumContacts[fingerToMove] << "\n";
-								op7GlobalCounter = 0;
 							}
 							op7GlobalCounter++;
+                            op7GlobalCounter = op7GlobalCounter%16;
 						}
-cout << "DEB 3" << "\n";
+
 						iOLC->setRefOutput(jointToMove,voltageDirection*op7PWMToUse);
-cout << "DEB 4" << "\n";		
 
 					} 
 					
@@ -1604,6 +1609,7 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 	using std::setw;
 
     Vector *inComp = portGraspThreadInSkinComp.read(false);
+
     if (inComp) {
         // Convert yarp vector to stl vector
         vector<double> contacts(12*nFingers);
@@ -1619,10 +1625,12 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 
             start = contacts.begin() + 12*i;
             end = start + 11;
-			
+
 			for (int j = 12*i; j < 12*(i+1); j++){
+
 				sumContacts[i] += contacts[j];
 				if (i == fingerToMove){
+
 					fingerTaxelValues[j - 12*i] = contacts[j];
 				}
 			}
@@ -1655,7 +1663,6 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 
             o_contacts[i] = usedVoltage == true ? (maxContacts[i] >= thresholdParam - 2) : (maxContacts[i] >= thresholdParam); //touchThresholds[i]);
         }
-
         // Store previous contacts
         previousContacts = o_contacts;
 		previousMaxContact = maxContacts[fingerToMove];
@@ -1665,14 +1672,12 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
     } else {
 #ifndef NODEBUG
 
-        if (stdLogging) cout << "DEBUG: " << dbgTag << "No skin data. \n";
-        if (stdLogging) cout << "DEBUG: " << dbgTag << "Using previous skin value. \n";
+        if (stdLogging) cout << "DEBUG: " << dbgTag << "No skin data. Using previous skin value. \n";
 #endif
         o_contacts = previousContacts;
 		maxContacts[fingerToMove] = previousMaxContact;
 		sumContacts[fingerToMove] = previousSumContact;
     }
-
 
     return true;
 }
