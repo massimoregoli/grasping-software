@@ -206,7 +206,7 @@ namespace iCub {
 				int op7VectorIndex;
 				int op7Counter;
 				int op7OpMode; // 0 pwm mode; 1 control mode
-				int op7ContrType; // 0 best for forward; 1 best for backward; 2 use the best depending on forward or backward; 3 depending on the contr type vector
+				int op7ContrType; // 0 best for forward; 1 best for backward; 2 use the best depending on forward or backward; 3 depending on the contr type vector; 4 decrease slowly and stop at a specific target
 				bool op7FileIsOpen;
 				double op7PWMToUse;
 				float op7Kp0;
@@ -218,8 +218,13 @@ namespace iCub {
 				double op7IntegrError;
 				double op7MaxIntegrError;
 				int op7GlobalCounter;
+				long op7RealGlobalCounter;
 				std::string op7CtrlStr1,op7CtrlStr2;
                 int op7UsedPreviousCounter;                
+				std::vector<double> op7PreviousSumValues;
+				double op7PreviousSumValue;
+				int op7Contr4State; // lo stato del controllo 4, 0 se fase iniziale di discesa, 1 se stabilizzazione
+				int op7RampCounter;
 
 				int testNumber;
 

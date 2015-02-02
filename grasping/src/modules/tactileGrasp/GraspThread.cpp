@@ -347,7 +347,7 @@ void GraspThread::run(void) {
 			vector<double> graspVelocities(nJointsVel, 0);
 			vector<double> maxContacts(nFingers);
 			vector<double> sumContacts(nFingers,0.0);
-			std::vector<double> fingerTaxelValues;
+			std::vector<double> fingerTaxelValues(12);
             bool usedPrevious;
 			if (sampleCounter == 0){
                 cout << "DEBUG: operationMode -1 trying to set VOCAB_CM_OPENLOOP: " << VOCAB_CM_OPENLOOP << "\n";
@@ -374,7 +374,7 @@ void GraspThread::run(void) {
 			vector<double> graspVelocities(nJointsVel, 0);
 			vector<double> maxContacts(nFingers);
 			vector<double> sumContacts(nFingers,0.0);
-			std::vector<double> fingerTaxelValues;
+			std::vector<double> fingerTaxelValues(12);
             bool usedPrevious;
 			if (detectContact(contacts,maxContacts,sumContacts,fingerTaxelValues,usedPrevious)) {
 
@@ -1359,11 +1359,17 @@ void GraspThread::run(void) {
 							op7FileIsOpen = false;
 							testNumber++;
 							op7GlobalCounter = 0;
+							op7RealGlobalCounter = 0;
                             op7UsedPreviousCounter = 0;
+							op7PreviousSumValues.resize(10,0.0);
+							op7Contr4State = 0;
+							op7RampCounter = 0;
 						}
 						
 					} else if (op7Mode == 1){
 						
+						op7PreviousSumValues[op7RealGlobalCounter%10] = sumContacts[fingerToMove];
+							
 						// sono i secondi che passano dal cambio di controllo (o nel tipo o nel valore) al termine del log di tale cambiamento
 						int secToWait;
 						// il target corrente, o di PWM o di feedback di sensori tattili
@@ -1396,6 +1402,7 @@ void GraspThread::run(void) {
                         if (usedPrevious) op7UsedPreviousCounter++;						
 
 						if (op7Counter < 50*secToWait){
+
 
 							if (!op7FileIsOpen){
 								// sei al primo passo in assoluto, non c'\E8 1 sec da aspettare come al solito, devi creare il file QUI
@@ -1436,8 +1443,11 @@ void GraspThread::run(void) {
                             }
                             if (op7Counter == 0){
                                 cout << "waiting for " << secToWait << " sec." << "\n";
-                            }							
+								op7Contr4State = 0;
+								op7RampCounter = 0;
+                            }
                             exLog = true;
+
 							op7Counter++;
 
 						} else if (op7Counter == 50*secToWait){
@@ -1528,24 +1538,51 @@ void GraspThread::run(void) {
 						// control mode
 						else if (op7OpMode == 1) {
 
-							error = currentTarget - sumContacts[fingerToMove];
+							if (op7ContrType == 4 || op7ContrType == 3 && currentContrType == 4){
 
-							if (op7ContrType == 0 || op7ContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
-								kp = op7Kp0;
-								ki = op7Ki0;
+								// se siamo in fase zero.. semplicemente applica un valore a rampa dipendente dal counter
+								// se siamo in fase uno.. applica zero!
+								if (op7Contr4State == 0){
+									// calcolo il valore medio dei precedenti 10 valori
+									op7PreviousSumValue = 0;
+									for(int i = 0; i < op7PreviousSumValues.size(); i++){
+										op7PreviousSumValue += op7PreviousSumValues[i];
+									}
+									op7PreviousSumValue = op7PreviousSumValue/op7PreviousSumValues.size();
+									if (op7PreviousSumValue < currentTarget){
+										op7Contr4State = 1;
+										op7PWMToUse = 0.0;
+									} else {
+										op7PWMToUse = -op7RampCounter*op7Ki1;
+									}
+									op7RampCounter++;
+								} else {
+									op7PWMToUse = 0.0;
+								}
+
+
 							} else {
-								kp = op7Kp1;
-								ki = op7Ki1;
-							}
 
-							op7IntegrError += error;
-							if (op7IntegrError > op7MaxIntegrError){
-								op7IntegrError = op7MaxIntegrError;
-							} else if (op7IntegrError < -op7MaxIntegrError){
-								op7IntegrError = -op7MaxIntegrError;
-							}
+								error = currentTarget - sumContacts[fingerToMove];
 
-							op7PWMToUse = kp*error + ki*op7IntegrError;
+								if (op7ContrType == 0 || op7ContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
+									kp = op7Kp0;
+									ki = op7Ki0;
+								} else {
+									kp = op7Kp1;
+									ki = op7Ki1;
+								}
+
+								op7IntegrError += error;
+								if (op7IntegrError > op7MaxIntegrError){
+									op7IntegrError = op7MaxIntegrError;
+								} else if (op7IntegrError < -op7MaxIntegrError){
+									op7IntegrError = -op7MaxIntegrError;
+								}
+
+								op7PWMToUse = kp*error + ki*op7IntegrError;
+						
+							}
 						}
 						// no mode selected (this shouldn't happen)
 						else {
@@ -1581,6 +1618,8 @@ void GraspThread::run(void) {
 
    						iOLC->setRefOutput(jointToMove,voltageDirection*op7PWMToUse);
                         
+						op7RealGlobalCounter ++;
+						op7RealGlobalCounter = op7RealGlobalCounter%1000000;
 					} 
 					
 
