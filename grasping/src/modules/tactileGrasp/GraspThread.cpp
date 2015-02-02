@@ -1553,7 +1553,7 @@ void GraspThread::run(void) {
 										op7Contr4State = 1;
 										op7PWMToUse = 0.0;
 									} else {
-										op7PWMToUse = -op7RampCounter*op7Ki1;
+										op7PWMToUse = -90 -op7RampCounter*op7Ki1;
 									}
 									op7RampCounter++;
 								} else {
@@ -1568,6 +1568,7 @@ void GraspThread::run(void) {
 								if (op7ContrType == 0 || op7ContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
 									kp = op7Kp0;
 									ki = op7Ki0;
+                                    if (op7IntegrError < 0) op7IntegrError = 0;
 								} else {
 									kp = op7Kp1;
 									ki = op7Ki1;
