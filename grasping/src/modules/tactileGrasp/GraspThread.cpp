@@ -1410,6 +1410,7 @@ void GraspThread::run(void) {
 								// sei al primo passo in assoluto, non c'\E8 1 sec da aspettare come al solito, devi creare il file QUI
 
 								Bottle& headerBottle = portOutputData.prepare();
+                                headerBottle.clear();
 
 								time_t now = time(0);
 								tm *ltm = localtime(&now);
@@ -1451,10 +1452,11 @@ void GraspThread::run(void) {
 								headerBottle.addDouble(op7Kp1);
 								headerBottle.addDouble(op7Ki1);
 								
-								portOutputData.write();
+								portOutputData.writeStrict();
 
 								Bottle& labelsBottle = portOutputData.prepare();
-
+                                labelsBottle.clear();
+                                
 								labelsBottle.addString("LABELS");
 								
 								//headers row
@@ -1477,7 +1479,7 @@ void GraspThread::run(void) {
 
 								op7FileIsOpen = true;
 
-								portOutputData.write();
+								portOutputData.writeStrict();
 
 							} else if (op7Counter == 0){
                                	cout << "JUMPING FROM " << fabs(pwmAndTFVector[op7VectorIndex - 1]) << (pwmAndTFVector[op7VectorIndex - 1] > 0 ? "P" : op7CtrlStr1) << " TO " << fabs(pwmAndTFVector[op7VectorIndex]) << (pwmAndTFVector[op7VectorIndex] > 0 ? "P" : op7CtrlStr2) << "\n";
@@ -1501,13 +1503,14 @@ void GraspThread::run(void) {
 								op7FileIsOpen = false;
 
 								Bottle& endBottle = portOutputData.prepare();
+                                endBottle.clear();
 								endBottle.addString("END");
-								portOutputData.write();
+								portOutputData.writeStrict();
 							}
 							if (op7VectorIndex + 1 < pwmAndTFVector.size()){
 								
 								Bottle& headerBottle = portOutputData.prepare();
-
+                                headerBottle.clear();
 								// crea file
 								time_t now = time(0);
 								tm *ltm = localtime(&now);
@@ -1571,9 +1574,11 @@ void GraspThread::run(void) {
 								headerBottle.addDouble(op7Kp1);
 								headerBottle.addDouble(op7Ki1);
 
-								portOutputData.write();
+								portOutputData.writeStrict();
 
 								Bottle& labelsBottle = portOutputData.prepare();
+                                labelsBottle.clear();
+
 								labelsBottle.addString("LABELS");
 
 								//headers row
@@ -1596,7 +1601,7 @@ void GraspThread::run(void) {
 								op7FileIsOpen = true;
 								op7Counter++;
 
-								portOutputData.write();
+								portOutputData.writeStrict();
 							} else {
 							
                                 if (op7GlobalCounter == 0){
@@ -1683,6 +1688,9 @@ void GraspThread::run(void) {
 						if (exLog){
 
 							Bottle& dataBottle = portOutputData.prepare();
+                            dataBottle.clear();
+
+                            dataBottle.addString("DATA");
 
 							for (int i = 0; i < fingerTaxelValues.size(); i++){
 								outputFile << fingerTaxelValues[i] << " ";
@@ -1704,7 +1712,7 @@ void GraspThread::run(void) {
 							dataBottle.addDouble(kp);
 							dataBottle.addDouble(ki);
 
-							portOutputData.write();
+							portOutputData.writeStrict();
 
 							if (op7GlobalCounter == 15){
 								cout << "\t " << op7PWMToUse << "  \t" << sumContacts[fingerToMove] << " \t" << kp << " \t" << ki << " \t" << error << " \t" << op7IntegrError << "/" << op7MaxIntegrError;
@@ -1901,7 +1909,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				"5) joint velocity (" << jointVelocity << ")" << "\n" <<
 				"6) PID max value (" << (pidGot ? pid.max_output : -1.0) << ")" << "\n" <<
 				"7) joint to move (" << jointToMove << ")" << "\n" <<
-				"8) touch threshold (" << thresholdParam << ")" << "\n" <<
+				"8) finger to move (" << fingerToMove << ")" << "\n" <<
 				"9) pressure (" << sumToReach << ")" << "\n" <<
 				"10) statistics:" << "\n" <<
 				"\t- 0: start logging" << "\n" <<
@@ -1973,13 +1981,12 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 			}
 		}
 		if (aFinger == 7){
-			int joint = (int) aThreshold;
-			jointToMove = joint;
-			cout << "joint to move: " << jointToMove << "\n";
+			jointToMove = (int) aThreshold;
+			cout << "new joint to move: " << jointToMove << "\n";
 		}
 		if (aFinger == 8){
-			thresholdParam = aThreshold;
-			cout << "new touch threshold: " << aThreshold << "\n";
+			fingerToMove = (int)aThreshold;
+			cout << "new finger to move: " << fingerToMove << "\n";
 		}
 		if (aFinger == 9){
 			sumToReach = aThreshold;
