@@ -101,6 +101,8 @@ namespace iCub {
                 yarp::os::BufferedPort<yarp::sig::Vector> portGraspThreadInSkinRaw;
                 yarp::os::BufferedPort<iCub::skinDynLib::skinContactList> portGraspThreadInSkinContacts;
                 
+				yarp::os::BufferedPort<yarp::os::Bottle> portOutputData;
+                
 
                 /* ****** Debug attributes                              ****** */
                 std::string dbgTag;
