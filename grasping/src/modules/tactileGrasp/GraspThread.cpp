@@ -2246,7 +2246,27 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 			else if (aThreshold >= 1400 && aThreshold < 1500){
 				op7ContrType = ((int)aThreshold) - 1400;
 				cout << "new control mode: " << op7ContrType << "\n";
-			} else if (aThreshold >= 1500){
+			} else if (aThreshold >= 1500 && aThreshold < 5000){
+				pwmAndTFVector.push_back(-(aThreshold-1500));
+				op7ContrTypeVector.push_back(-1);
+				
+				std::ostringstream pwmAndTFList(std::ostringstream::ate);
+				pwmAndTFList.str("");
+				for(int i = 0; i < pwmAndTFVector.size(); i++){
+					pwmAndTFList << fabs(pwmAndTFVector[i]);
+					if (pwmAndTFVector[i] > 0) pwmAndTFList << "P";
+					else {
+						pwmAndTFList << "C" << op7ContrType;
+						if (op7ContrType == 3){
+							pwmAndTFList << "_" << op7ContrTypeVector[i];
+						}
+					}
+					if (i < pwmAndTFVector.size() - 1){
+						pwmAndTFList << " ";
+					}
+				}
+				cout << "new target values: " << pwmAndTFList.str() << "\n";
+			} else if (aThreshold >= 5000){
 				op7MaxIntegrError = ((int)aThreshold);
 				cout << "new max integration error: " << op7MaxIntegrError << "\n";
 			}
