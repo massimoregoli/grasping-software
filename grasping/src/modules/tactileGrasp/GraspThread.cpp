@@ -1381,10 +1381,12 @@ void GraspThread::run(void) {
 						int currentContrType;
 
 						currentContrType = op7ContrTypeVector[op7VectorIndex];
-						if (pwmAndTFVector[op7VectorIndex] > 0){
+						if (op7ContrTypeVector[op7VectorIndex] == -1){
 							op7OpMode = 0; // pwm mode
 							currentTarget = pwmAndTFVector[op7VectorIndex];
-							secToWait = 7;
+							
+                            if (pwmAndTFVector[op7VectorIndex] > 0) secToWait = 7;
+                            else secToWait = 15;
 						} else {
 							op7OpMode = 1; // control mode
 							currentTarget = -pwmAndTFVector[op7VectorIndex];
@@ -1422,14 +1424,14 @@ void GraspThread::run(void) {
 								std::stringstream ctrl;
 								ctrl << "C" << op7ContrTypeVector[0];
 								
-								fileName << myDate << "_T" << testNumber << "_0P_" << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str()) << ".csv";
+								fileName << myDate << "_T" << testNumber << "_0P_" << (op7ContrTypeVector[0] == -1 ? pwmAndTFVector[0] : fabs(pwmAndTFVector[0])) << (op7ContrTypeVector[0] == -1 ? "P" : ctrl.str()) << ".csv";
 						
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 								headerBottle.addString("START");
 								headerBottle.addString(fileName.str());
 								headerBottle.addString("PWM");
 								headerBottle.addDouble(0.0);
-								if (pwmAndTFVector[0] > 0){
+								if (op7ContrTypeVector[0] == -1){
 									headerBottle.addString("PWM");
 									headerBottle.addDouble(fabs(pwmAndTFVector[0]));
 									headerBottle.addInt(0);
@@ -1443,7 +1445,7 @@ void GraspThread::run(void) {
 								cout << "FILE " << fileName.str() << " OPENED\n";
 							
 								// first row
-								outputFile << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str());
+								outputFile << (op7ContrTypeVector[0] == -1 ? pwmAndTFVector[0] : fabs(pwmAndTFVector[0])) << (op7ContrTypeVector[0] == -1 ? "P" : ctrl.str());
 								outputFile << "\n";
 								outputFile << "Kpf: " << op7Kp0 << " Kif: " << op7Ki0 << " Kpb: " << op7Kp1 << " Kpb: " << op7Ki1;
 								outputFile << "\n";
@@ -1475,14 +1477,14 @@ void GraspThread::run(void) {
 								labelsBottle.addString("Kp");
 								labelsBottle.addString("Ki");
 
-								cout << "JUMPING FROM 0P TO " << fabs(pwmAndTFVector[0]) << (pwmAndTFVector[0] > 0 ? "P" : ctrl.str()) << "\n";
+								cout << "JUMPING FROM 0P TO " << (op7ContrTypeVector[0] == -1 ? pwmAndTFVector[0] : fabs(pwmAndTFVector[0])) << (op7ContrTypeVector[0] == -1 ? "P" : ctrl.str()) << "\n";
 
 								op7FileIsOpen = true;
 
 								portOutputData.writeStrict();
 
 							} else if (op7Counter == 0){
-                               	cout << "JUMPING FROM " << fabs(pwmAndTFVector[op7VectorIndex - 1]) << (pwmAndTFVector[op7VectorIndex - 1] > 0 ? "P" : op7CtrlStr1) << " TO " << fabs(pwmAndTFVector[op7VectorIndex]) << (pwmAndTFVector[op7VectorIndex] > 0 ? "P" : op7CtrlStr2) << "\n";
+                               	cout << "JUMPING FROM " << (op7ContrTypeVector[op7VectorIndex - 1] == -1 ? pwmAndTFVector[op7VectorIndex - 1] : fabs(pwmAndTFVector[op7VectorIndex - 1])) << (op7ContrTypeVector[op7VectorIndex - 1] == -1 ? "P" : op7CtrlStr1) << " TO " << (op7ContrTypeVector[op7VectorIndex] == -1 ? pwmAndTFVector[op7VectorIndex] : fabs(pwmAndTFVector[op7VectorIndex])) << (op7ContrTypeVector[op7VectorIndex] == -1 ? "P" : op7CtrlStr2) << "\n";
                             }
                             if (op7Counter == 0){
                                 cout << "waiting for " << secToWait << " sec." << "\n";
@@ -1524,7 +1526,7 @@ void GraspThread::run(void) {
 								ctrl2 << "C" << op7ContrTypeVector[op7VectorIndex + 1];
 								op7CtrlStr1 = ctrl1.str();
                                 op7CtrlStr2 = ctrl2.str();
-								fileName << myDate << "_T" << testNumber << "_" << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << "_" << fabs(pwmAndTFVector[op7VectorIndex + 1]) << (pwmAndTFVector[op7VectorIndex + 1] > 0 ? "P" : ctrl2.str()) << ".csv";
+								fileName << myDate << "_T" << testNumber << "_" << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << "_" << (op7ContrTypeVector[op7VectorIndex + 1] == -1 ? pwmAndTFVector[op7VectorIndex + 1] : fabs(pwmAndTFVector[op7VectorIndex + 1])) << (op7ContrTypeVector[op7VectorIndex + 1] == -1 ? "P" : ctrl2.str()) << ".csv";
 				
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 								headerBottle.addString("START");
@@ -1538,7 +1540,7 @@ void GraspThread::run(void) {
 									headerBottle.addDouble(currentTarget);
 									headerBottle.addInt(op7ContrTypeVector[op7VectorIndex]);
 								}
-								if (pwmAndTFVector[op7VectorIndex + 1] > 0){
+								if (op7ContrTypeVector[op7VectorIndex + 1] == -1){
 									headerBottle.addString("PWM");
 									headerBottle.addDouble(fabs(pwmAndTFVector[op7VectorIndex + 1]));
 									headerBottle.addInt(0);
@@ -1561,7 +1563,7 @@ void GraspThread::run(void) {
 								for (int i = firstTarget; i <= op7VectorIndex + 1; i++){
 									std::stringstream ctrli;
 									ctrli << "C" << op7ContrTypeVector[i];
-									outputFile << fabs(pwmAndTFVector[i]) << (pwmAndTFVector[i] > 0 ? "P" : ctrli.str());
+									outputFile << (op7ContrTypeVector[i] == -1 ? pwmAndTFVector[i] : fabs(pwmAndTFVector[i])) << (op7ContrTypeVector[i] == -1 ? "P" : ctrli.str());
 									if (i < op7VectorIndex + 1){
 										outputFile << " -> ";
 									}
@@ -1891,7 +1893,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 		pwmAndTFList.str("");
 		for(int i = 0; i < pwmAndTFVector.size(); i++){
 			pwmAndTFList << fabs(pwmAndTFVector[i]);
-			if (pwmAndTFVector[i] > 0) pwmAndTFList << "P";
+			if (op7ContrTypeVector[i] == -1) pwmAndTFList << "P";
 			else {
 				pwmAndTFList << "C" << op7ContrType;
 				if (op7ContrType == 3){
@@ -2213,7 +2215,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				pwmAndTFList.str("");
 				for(int i = 0; i < pwmAndTFVector.size(); i++){
 					pwmAndTFList << fabs(pwmAndTFVector[i]);
-					if (pwmAndTFVector[i] > 0) pwmAndTFList << "P";
+					if (op7ContrTypeVector[i] == -1) pwmAndTFList << "P";
 					else {
 						pwmAndTFList << "C" << op7ContrType;
 						if (op7ContrType == 3){
@@ -2254,7 +2256,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				pwmAndTFList.str("");
 				for(int i = 0; i < pwmAndTFVector.size(); i++){
 					pwmAndTFList << fabs(pwmAndTFVector[i]);
-					if (pwmAndTFVector[i] > 0) pwmAndTFList << "P";
+					if (op7ContrTypeVector[i] == -1) pwmAndTFList << "P";
 					else {
 						pwmAndTFList << "C" << op7ContrType;
 						if (op7ContrType == 3){
