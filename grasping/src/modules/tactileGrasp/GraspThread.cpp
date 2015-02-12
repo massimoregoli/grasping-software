@@ -154,6 +154,8 @@ bool GraspThread::threadInit(void) {
 	op7Ki1 = 0.05;
 	op7Kd1 = 0.0;
 	op7MaxIntegrError = 100000;
+	op7EmptyIntegrError = true;
+	op7UseTustin = true;
 
 	voltageDirection = 1;
 
@@ -1366,6 +1368,8 @@ void GraspThread::run(void) {
 							op7PreviousSumValues.resize(10,0.0);
 							op7Contr4State = 0;
 							op7RampCounter = 0;
+							op7PreviousError = 0;
+							op7PreviousErrorSign = 1;
 						}
 						
 					} else if (op7Mode == 1){
@@ -1663,21 +1667,28 @@ void GraspThread::run(void) {
 								if (op7ContrType == 0 || op7ContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
 									kp = op7Kp0;
 									ki = op7Ki0;
-                                    if (op7IntegrError < 0) op7IntegrError = 0;
+                                    if (op7IntegrError < 0 && op7EmptyIntegrError) op7IntegrError = 0;
 								} else {
 									kp = op7Kp1;
 									ki = op7Ki1;
 								}
 
-								op7IntegrError += error;
+								double tustinError = (op7PreviousError + error)/2;
+
+								if (op7UseTustin){
+									op7IntegrError += tustinError;
+								} else {
+									op7IntegrError += error;
+								}
 								if (op7IntegrError > op7MaxIntegrError){
 									op7IntegrError = op7MaxIntegrError;
 								} else if (op7IntegrError < -op7MaxIntegrError){
 									op7IntegrError = -op7MaxIntegrError;
 								}
 
-								op7PWMToUse = kp*error + ki*op7IntegrError;
-						
+								op7PWMToUse = kp*error + ki*0.02*op7IntegrError;
+
+								op7PreviousError = error;
 							}
 						}
 						// no mode selected (this shouldn't happen)
@@ -1694,10 +1705,14 @@ void GraspThread::run(void) {
 
                             dataBottle.addString("DATA");
 
+							double sumTaxelValues = 0.0;
+
 							for (int i = 0; i < fingerTaxelValues.size(); i++){
 								outputFile << fingerTaxelValues[i] << " ";
 								dataBottle.addDouble(fingerTaxelValues[i]);
+								sumTaxelValues += fingerTaxelValues[i];
 							}
+							dataBottle.addDouble(sumTaxelValues);
 							double fingerProximalEnc,fingerDistalEnc,fingerProximalOutput,fingerDistalOutput;
 							iEncs->getEncoder(jointToMove,&fingerProximalEnc);
 							iEncs->getEncoder(jointToMove + 1,&fingerDistalEnc);
@@ -1961,6 +1976,12 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				"\t- -660<x<=-630: -630-Kib (" << op7Ki1 << ")" << "\n" <<
 				"\t- 1400<=x<1500: 1400 + controlMode (" << op7ContrType << ")" << "\n" <<
 				"\t- x>=1500: max integr error (" << op7MaxIntegrError << ")" << "\n" <<
+				"261) extra options section 26:" << "\n" <<
+				"\t- 0: use Tustin " << (op7UseTustin ? "X" : "") << "\n" <<
+				"\t- 1: dont' use Tustin " << (op7UseTustin ? "" : "X") << "\n" <<
+				"\t- 2: empty integrError " << (op7EmptyIntegrError ? "X" : "") << "\n" <<
+				"\t- 3: don't empty integrError " << (op7EmptyIntegrError ? "" : "X") << "\n" <<
+
 				"-----------------------" << "\n";
 		return true;
 	}
@@ -2273,6 +2294,25 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				cout << "new max integration error: " << op7MaxIntegrError << "\n";
 			}
 			
+		}
+		if (aFinger == 261){
+			int choice = (int)aThreshold;
+			if (choice == 1){
+				op7UseTustin = true;
+				cout << "Tustin enabled\n";
+			}
+			else if (choice == 2){
+				op7UseTustin = false;
+				cout << "Tustin disabled\n";
+			}
+			else if (choice == 3){
+				op7EmptyIntegrError = true;
+				cout << "Integral emptying enabled\n";
+			}
+			else if (choice == 4){
+				op7EmptyIntegrError = false;
+				cout << "Integral emptying disabled\n";
+			}
 		}
 		return true;
 	} else {

@@ -230,6 +230,11 @@ namespace iCub {
 
 				int testNumber;
 
+				double op7PreviousError;
+				int op7PreviousErrorSign; // 1 pos -1 neg
+				bool op7EmptyIntegrError;
+				bool op7UseTustin;
+
             public:
                 GraspThread(const int aPeriod, const yarp::os::ResourceFinder &aRf);
                 virtual ~GraspThread();
