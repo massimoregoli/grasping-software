@@ -224,6 +224,7 @@ bool GraspThread::threadInit(void) {
     portGraspThreadInSkinContacts.open("/TactileGrasp/skin/contacts:i");
 
 	portOutputData.open("/TactileGrasp/log:o");
+	portOutputData.open("/TactileGrasp/debug:o");
 
     /* ******* Joint interfaces                     ******* */
     string arm = whichHand + "_arm";
@@ -1760,8 +1761,9 @@ void GraspThread::threadRelease(void) {
     portGraspThreadInSkinContacts.close();
 
 	portOutputData.interrupt();
+	portOutputTest.interrupt();
 	portOutputData.close();
-
+	portOutputTest.close();
     // Stop interfaces
     if (iVel) {
         iVel->stop();
@@ -1786,10 +1788,20 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
     using std::deque;
     using std::vector;
 	using std::setw;
+	using yarp::os::Bottle;
 
     Vector *inComp = portGraspThreadInSkinComp.read(false);
 
+
     if (inComp) {
+
+		Bottle& bottle = portOutputTest.prepare();
+		bottle.clear();
+		for(int i = 0; i < 12*nFingers; i++){
+			bottle.addDouble((*inComp)[i]);
+		}
+		portOutputTest.write();
+
         // Convert yarp vector to stl vector
         vector<double> contacts(12*nFingers);
         for (size_t i = 0; i < contacts.size(); ++i) {

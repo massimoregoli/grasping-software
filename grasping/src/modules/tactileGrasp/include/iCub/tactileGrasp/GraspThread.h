@@ -102,6 +102,7 @@ namespace iCub {
                 yarp::os::BufferedPort<iCub::skinDynLib::skinContactList> portGraspThreadInSkinContacts;
                 
 				yarp::os::BufferedPort<yarp::os::Bottle> portOutputData;
+                yarp::os::BufferedPort<yarp::os::Bottle> portOutputTest;
                 
 
                 /* ****** Debug attributes                              ****** */
