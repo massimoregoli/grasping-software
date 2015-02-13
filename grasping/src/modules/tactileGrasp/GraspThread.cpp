@@ -77,8 +77,8 @@ bool GraspThread::threadInit(void) {
 
 	
 	jointVelocity = 10.0;
-	jointToMove = 13;
-	fingerToMove = 1;
+	jointToMove = 11;
+	fingerToMove = 0;
 	usedVoltage = false;
 	thresholdParam = 10.0;
 	touchToReach = 40.0;
@@ -104,7 +104,7 @@ bool GraspThread::threadInit(void) {
 
 	refVoltage = 200;
 
-	operationMode = 6;
+	operationMode = 7;
 	op1Mode = 0;
 	op1UseVoltage = false;
 	initialVoltage = 260.0;
@@ -147,15 +147,16 @@ bool GraspThread::threadInit(void) {
 
 	op7Mode = 0;
 	op7ContrType = 3;
-	op7Kp0 = 1.0;
-	op7Ki0 = 0.0;
+	op7Kp0 = 6.85;
+	op7Ki0 = 28.5;
 	op7Kd0 = 0.0;
-	op7Kp1 = 0.0;
-	op7Ki1 = 0.05;
+	op7Kp1 = 1.59;
+	op7Ki1 = 1.14;
 	op7Kd1 = 0.0;
 	op7MaxIntegrError = 100000;
 	op7EmptyIntegrError = true;
 	op7UseTustin = true;
+    op7SecToWaitContr2 = 20;
 
 	voltageDirection = 1;
 
@@ -165,11 +166,7 @@ bool GraspThread::threadInit(void) {
 	//voltageVector.push_back(500.0);
 
 	pwmAndTFVector.push_back(250.0);
-	pwmAndTFVector.push_back(900.0);
-	pwmAndTFVector.push_back(-40.0);
 	op7ContrTypeVector.push_back(-1);
-	op7ContrTypeVector.push_back(-1);
-	op7ContrTypeVector.push_back(1);
 
 	
     // Build grasp parameters
@@ -1396,6 +1393,7 @@ void GraspThread::run(void) {
 							currentTarget = -pwmAndTFVector[op7VectorIndex];
 							secToWait = 12; // qui si aspetta di pi\F9 perch\E9 c'\E8 controllo
                             if (currentContrType == 1) secToWait = 20;
+                            if (currentContrType == 2) secToWait = op7SecToWaitContr2;
 						}
 						if (op7VectorIndex == 0){
 							// se la mano non \E8 ancora in contatto \E8 meglio prolungare l'attesa, perch\E9 nei primi secondi non ci saranno dati utili
@@ -1664,7 +1662,7 @@ void GraspThread::run(void) {
 
 								error = currentTarget - sumContacts[fingerToMove];
 
-								if (op7ContrType == 0 || op7ContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
+								if (op7ContrType == 0 || currentContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
 									kp = op7Kp0;
 									ki = op7Ki0;
                                     if (op7IntegrError < 0 && op7EmptyIntegrError) op7IntegrError = 0;
@@ -1981,6 +1979,7 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				"\t- 1: dont' use Tustin " << (op7UseTustin ? "" : "X") << "\n" <<
 				"\t- 2: empty integrError " << (op7EmptyIntegrError ? "X" : "") << "\n" <<
 				"\t- 3: don't empty integrError " << (op7EmptyIntegrError ? "" : "X") << "\n" <<
+				"\t- >=10: num seconds control type 2" << (op7SecToWaitContr2) << "\n" <<
 
 				"-----------------------" << "\n";
 		return true;
@@ -2337,11 +2336,18 @@ bool GraspThread::openHand(void) {
     //iPos->positionMove(14, 0);
     //iPos->positionMove(15, 40);
 
-	iPos->positionMove(11, 5);
-    iPos->positionMove(12, 19);
-    iPos->positionMove(13, 3);
-    iPos->positionMove(14, 20);
-    iPos->positionMove(15, 17);
+    // before 12/02/15
+	//iPos->positionMove(11, 5);
+    //iPos->positionMove(12, 19);
+    //iPos->positionMove(13, 3);
+    //iPos->positionMove(14, 20);
+    //iPos->positionMove(15, 17);
+
+	iPos->positionMove(11, 0);
+    iPos->positionMove(12, 0);
+    iPos->positionMove(13, 59);
+    iPos->positionMove(14, 106);
+    iPos->positionMove(15, 195);
 
     // Check motion done
     waitMoveDone(10, 1);
@@ -2365,7 +2371,11 @@ bool GraspThread::reachArm(void) {
     //iPos->positionMove(1 , 35);
     //iPos->positionMove(2 , 18);
     //iPos->positionMove(3 , 22);
-    iPos->positionMove(4 ,-13);
+
+    // before 12/02/15    
+    //iPos->positionMove(4 ,-13);
+    
+    
     //iPos->positionMove(5 , 9);
     //iPos->positionMove(6 , -5);
     //iPos->positionMove(7 , 20);
@@ -2382,11 +2392,34 @@ bool GraspThread::reachArm(void) {
 	//iPos->positionMove(8 , 60);
 	//iPos->positionMove(9 , 36);
 	//iPos->positionMove(10, 7);
-    iPos->positionMove(11, 5);
-    iPos->positionMove(12, 19);
-    iPos->positionMove(13, 3);
-    iPos->positionMove(14, 20);
-    iPos->positionMove(15, 17);
+    
+    // before 12/02/15
+    //iPos->positionMove(11, 5);
+    //iPos->positionMove(12, 19);
+    //iPos->positionMove(13, 3);
+    //iPos->positionMove(14, 20);
+    //iPos->positionMove(15, 17);
+
+    iPos->positionMove(0 ,-30);
+    iPos->positionMove(1 , 20);
+    iPos->positionMove(2 , 0);
+    iPos->positionMove(3 , 19);
+
+    iPos->positionMove(4 ,0);
+    
+    
+    iPos->positionMove(5 , 0);
+    iPos->positionMove(6 , 0);
+    iPos->positionMove(7 , 15);
+    // Hand
+    iPos->positionMove(8 , 48);
+    iPos->positionMove(9 , 0);
+    iPos->positionMove(10, 5);
+    iPos->positionMove(11, 0);
+    iPos->positionMove(12, 0);
+    iPos->positionMove(13, 59);
+    iPos->positionMove(14, 106);
+    iPos->positionMove(15, 195);
 
     // Check motion done
     waitMoveDone(10, 1);
