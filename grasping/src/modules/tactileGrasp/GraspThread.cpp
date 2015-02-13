@@ -224,7 +224,7 @@ bool GraspThread::threadInit(void) {
     portGraspThreadInSkinContacts.open("/TactileGrasp/skin/contacts:i");
 
 	portOutputData.open("/TactileGrasp/log:o");
-	portOutputData.open("/TactileGrasp/debug:o");
+	portOutputTest.open("/TactileGrasp/debug:o");
 
     /* ******* Joint interfaces                     ******* */
     string arm = whichHand + "_arm";
