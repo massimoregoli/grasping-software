@@ -172,6 +172,8 @@ bool GraspThread::threadInit(void) {
 	op7ContrTypeVector.push_back(1);
 
 	
+	previousFingerTaxelValues.resize(12,0.0);
+
     // Build grasp parameters
     Bottle &confGrasp = rf.findGroup("graspTh");
     if (!confGrasp.isNull()) {
@@ -1371,6 +1373,7 @@ void GraspThread::run(void) {
 							op7RampCounter = 0;
 							op7PreviousError = 0;
 							op7PreviousErrorSign = 1;
+							previousFingerTaxelValues.resize(12,0.0);
 						}
 						
 					} else if (op7Mode == 1){
@@ -1823,6 +1826,7 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 				if (i == fingerToMove){
 
 					fingerTaxelValues[j - 12*i] = contacts[j];
+					previousFingerTaxelValues[j - 12*i] = contacts[j];
 				}
 			}
 
@@ -1869,6 +1873,9 @@ bool GraspThread::detectContact(std::deque<bool> &o_contacts,std::vector<double>
 		maxContacts[fingerToMove] = previousMaxContact;
 		sumContacts[fingerToMove] = previousSumContact;
         usedPrevious = true;
+		for(int i = 0; i < fingerTaxelValues.size(); i++){
+			fingerTaxelValues[i] = previousFingerTaxelValues[i];
+		}
     }
 
     return true;

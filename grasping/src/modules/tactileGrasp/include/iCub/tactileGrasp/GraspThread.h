@@ -83,6 +83,8 @@ namespace iCub {
                 /** The touch threshold for each fingertip. */
                 std::vector<double> touchThresholds;
 
+				std::vector<double> previousFingerTaxelValues;
+
                 /* ******* Grasp configuration                          ******* */
                 /** The grasp velocities. */
                 GraspVelocity velocities;
