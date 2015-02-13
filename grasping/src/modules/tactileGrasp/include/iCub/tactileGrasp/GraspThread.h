@@ -227,7 +227,6 @@ namespace iCub {
 				double op7PreviousSumValue;
 				int op7Contr4State; // lo stato del controllo 4, 0 se fase iniziale di discesa, 1 se stabilizzazione
 				int op7RampCounter;
-                int op7SecToWaitContr2;
 
 				int testNumber;
 
@@ -235,6 +234,7 @@ namespace iCub {
 				int op7PreviousErrorSign; // 1 pos -1 neg
 				bool op7EmptyIntegrError;
 				bool op7UseTustin;
+				yarp::os::Bottle op7StepBottle;
 
             public:
                 GraspThread(const int aPeriod, const yarp::os::ResourceFinder &aRf);

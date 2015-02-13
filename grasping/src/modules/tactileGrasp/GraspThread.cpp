@@ -77,8 +77,8 @@ bool GraspThread::threadInit(void) {
 
 	
 	jointVelocity = 10.0;
-	jointToMove = 11;
-	fingerToMove = 0;
+	jointToMove = 13;
+	fingerToMove = 1;
 	usedVoltage = false;
 	thresholdParam = 10.0;
 	touchToReach = 40.0;
@@ -104,7 +104,7 @@ bool GraspThread::threadInit(void) {
 
 	refVoltage = 200;
 
-	operationMode = 7;
+	operationMode = 6;
 	op1Mode = 0;
 	op1UseVoltage = false;
 	initialVoltage = 260.0;
@@ -147,16 +147,15 @@ bool GraspThread::threadInit(void) {
 
 	op7Mode = 0;
 	op7ContrType = 3;
-	op7Kp0 = 6.85;
-	op7Ki0 = 28.5;
+	op7Kp0 = 1.0;
+	op7Ki0 = 0.0;
 	op7Kd0 = 0.0;
-	op7Kp1 = 1.59;
-	op7Ki1 = 1.14;
+	op7Kp1 = 0.0;
+	op7Ki1 = 0.05;
 	op7Kd1 = 0.0;
 	op7MaxIntegrError = 100000;
 	op7EmptyIntegrError = true;
 	op7UseTustin = true;
-    op7SecToWaitContr2 = 20;
 
 	voltageDirection = 1;
 
@@ -166,7 +165,11 @@ bool GraspThread::threadInit(void) {
 	//voltageVector.push_back(500.0);
 
 	pwmAndTFVector.push_back(250.0);
+	pwmAndTFVector.push_back(900.0);
+	pwmAndTFVector.push_back(-40.0);
 	op7ContrTypeVector.push_back(-1);
+	op7ContrTypeVector.push_back(-1);
+	op7ContrTypeVector.push_back(1);
 
 	
     // Build grasp parameters
@@ -1393,7 +1396,6 @@ void GraspThread::run(void) {
 							currentTarget = -pwmAndTFVector[op7VectorIndex];
 							secToWait = 12; // qui si aspetta di pi\F9 perch\E9 c'\E8 controllo
                             if (currentContrType == 1) secToWait = 20;
-                            if (currentContrType == 2) secToWait = op7SecToWaitContr2;
 						}
 						if (op7VectorIndex == 0){
 							// se la mano non \E8 ancora in contatto \E8 meglio prolungare l'attesa, perch\E9 nei primi secondi non ci saranno dati utili
@@ -1409,12 +1411,9 @@ void GraspThread::run(void) {
 
 						if (op7Counter < 50*secToWait){
 
-
 							if (!op7FileIsOpen){
-								// sei al primo passo in assoluto, non c'\E8 1 sec da aspettare come al solito, devi creare il file QUI
-
-								Bottle& headerBottle = portOutputData.prepare();
-                                headerBottle.clear();
+								
+								op7StepBottle.clear();
 
 								time_t now = time(0);
 								tm *ltm = localtime(&now);
@@ -1429,20 +1428,25 @@ void GraspThread::run(void) {
 								fileName << myDate << "_T" << testNumber << "_0P_" << (op7ContrTypeVector[0] == -1 ? pwmAndTFVector[0] : fabs(pwmAndTFVector[0])) << (op7ContrTypeVector[0] == -1 ? "P" : ctrl.str()) << ".csv";
 						
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
-								headerBottle.addString("START");
-								headerBottle.addString(fileName.str());
-								headerBottle.addString("PWM");
-								headerBottle.addDouble(0.0);
-								if (op7ContrTypeVector[0] == -1){
-									headerBottle.addString("PWM");
-									headerBottle.addDouble(fabs(pwmAndTFVector[0]));
-									headerBottle.addInt(0);
-								} else {
-									headerBottle.addString("TAX");
-									headerBottle.addDouble(fabs(pwmAndTFVector[0]));
-									headerBottle.addInt(op7ContrTypeVector[0]);
-								}
+								// unique id of the step
+								op7StepBottle.addInt((int)myDate);
+								// starting condition: 0 PWM 1 Control
+								op7StepBottle.addInt(0);
+								// kind of starting condition (for PWM it's always 0)
+								op7StepBottle.addInt(0);
+								// starting target
+								op7StepBottle.addDouble(0.0);
 
+								if (op7ContrTypeVector[0] == -1){
+									op7StepBottle.addInt(0);
+									op7StepBottle.addInt(0);
+									op7StepBottle.addDouble(pwmAndTFVector[0]);
+								} else {
+									op7StepBottle.addInt(1);
+									op7StepBottle.addInt(op7ContrTypeVector[0]);
+									op7StepBottle.addDouble(fabs(pwmAndTFVector[0]));
+								}
+								
 
 								cout << "FILE " << fileName.str() << " OPENED\n";
 							
@@ -1451,39 +1455,20 @@ void GraspThread::run(void) {
 								outputFile << "\n";
 								outputFile << "Kpf: " << op7Kp0 << " Kif: " << op7Ki0 << " Kpb: " << op7Kp1 << " Kpb: " << op7Ki1;
 								outputFile << "\n";
-								headerBottle.addDouble(op7Kp0);
-								headerBottle.addDouble(op7Ki0);
-								headerBottle.addDouble(op7Kp1);
-								headerBottle.addDouble(op7Ki1);
 								
-								portOutputData.writeStrict();
+								
 
-								Bottle& labelsBottle = portOutputData.prepare();
-                                labelsBottle.clear();
-                                
-								labelsBottle.addString("LABELS");
 								
 								//headers row
 								for (int i = 0; i < fingerTaxelValues.size(); i++){
 									outputFile << i << " ";
-									labelsBottle.addInt(i);
 								}
 								outputFile << "realVoltageProx voltageProx voltageDist degreesProx degreesDist error integrError Kp Ki \n";
-								labelsBottle.addString("realVoltageProx");
-								labelsBottle.addString("voltageProx");
-								labelsBottle.addString("voltageDist");
-								labelsBottle.addString("degreesProx");
-								labelsBottle.addString("degreesDist");
-								labelsBottle.addString("error");
-								labelsBottle.addString("integrError");
-								labelsBottle.addString("Kp");
-								labelsBottle.addString("Ki");
+
 
 								cout << "JUMPING FROM 0P TO " << (op7ContrTypeVector[0] == -1 ? pwmAndTFVector[0] : fabs(pwmAndTFVector[0])) << (op7ContrTypeVector[0] == -1 ? "P" : ctrl.str()) << "\n";
 
 								op7FileIsOpen = true;
-
-								portOutputData.writeStrict();
 
 							} else if (op7Counter == 0){
                                	cout << "JUMPING FROM " << (op7ContrTypeVector[op7VectorIndex - 1] == -1 ? pwmAndTFVector[op7VectorIndex - 1] : fabs(pwmAndTFVector[op7VectorIndex - 1])) << (op7ContrTypeVector[op7VectorIndex - 1] == -1 ? "P" : op7CtrlStr1) << " TO " << (op7ContrTypeVector[op7VectorIndex] == -1 ? pwmAndTFVector[op7VectorIndex] : fabs(pwmAndTFVector[op7VectorIndex])) << (op7ContrTypeVector[op7VectorIndex] == -1 ? "P" : op7CtrlStr2) << "\n";
@@ -1506,15 +1491,11 @@ void GraspThread::run(void) {
 								exLog = true;
 								op7FileIsOpen = false;
 
-								Bottle& endBottle = portOutputData.prepare();
-                                endBottle.clear();
-								endBottle.addString("END");
-								portOutputData.writeStrict();
 							}
 							if (op7VectorIndex + 1 < pwmAndTFVector.size()){
 								
-								Bottle& headerBottle = portOutputData.prepare();
-                                headerBottle.clear();
+								op7StepBottle.clear();
+
 								// crea file
 								time_t now = time(0);
 								tm *ltm = localtime(&now);
@@ -1531,25 +1512,25 @@ void GraspThread::run(void) {
 								fileName << myDate << "_T" << testNumber << "_" << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << "_" << (op7ContrTypeVector[op7VectorIndex + 1] == -1 ? pwmAndTFVector[op7VectorIndex + 1] : fabs(pwmAndTFVector[op7VectorIndex + 1])) << (op7ContrTypeVector[op7VectorIndex + 1] == -1 ? "P" : ctrl2.str()) << ".csv";
 				
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
-								headerBottle.addString("START");
-								headerBottle.addString(fileName.str());
+								op7StepBottle.addInt((int)myDate);
+								op7StepBottle.addInt(testNumber);
 								if (op7OpMode == 0){
-									headerBottle.addString("PWM");
-									headerBottle.addDouble(currentTarget);
-									headerBottle.addInt(0);
+									op7StepBottle.addInt(0);
+									op7StepBottle.addInt(0);
+									op7StepBottle.addDouble(currentTarget);
 								} else {
-									headerBottle.addString("TAX");
-									headerBottle.addDouble(currentTarget);
-									headerBottle.addInt(op7ContrTypeVector[op7VectorIndex]);
+									op7StepBottle.addInt(1);
+									op7StepBottle.addInt(op7ContrTypeVector[op7VectorIndex]);
+									op7StepBottle.addDouble(currentTarget);
 								}
 								if (op7ContrTypeVector[op7VectorIndex + 1] == -1){
-									headerBottle.addString("PWM");
-									headerBottle.addDouble(fabs(pwmAndTFVector[op7VectorIndex + 1]));
-									headerBottle.addInt(0);
+									op7StepBottle.addInt(0);
+									op7StepBottle.addInt(0);
+									op7StepBottle.addDouble(fabs(pwmAndTFVector[op7VectorIndex + 1]));
 								} else {
-									headerBottle.addString("TAX");
-									headerBottle.addDouble(fabs(pwmAndTFVector[op7VectorIndex + 1]));
-									headerBottle.addInt(op7ContrTypeVector[op7VectorIndex + 1]);
+									op7StepBottle.addInt(1);
+									op7StepBottle.addInt(op7ContrTypeVector[op7VectorIndex + 1]);
+									op7StepBottle.addDouble(fabs(pwmAndTFVector[op7VectorIndex + 1]));
 								}
 
 								cout << "FILE " << fileName.str() << " OPENED\nwaiting 2 sec...\n";
@@ -1573,39 +1554,17 @@ void GraspThread::run(void) {
 								outputFile << "\n";
 								outputFile << "Kpf: " << op7Kp0 << " Kif: " << op7Ki0 << " Kpb: " << op7Kp1 << " Kpb: " << op7Ki1;
 								outputFile << "\n";
-								headerBottle.addDouble(op7Kp0);
-								headerBottle.addDouble(op7Ki0);
-								headerBottle.addDouble(op7Kp1);
-								headerBottle.addDouble(op7Ki1);
-
-								portOutputData.writeStrict();
-
-								Bottle& labelsBottle = portOutputData.prepare();
-                                labelsBottle.clear();
-
-								labelsBottle.addString("LABELS");
 
 								//headers row
 								for (int i = 0; i < fingerTaxelValues.size(); i++){
 									outputFile << i << " ";
-									labelsBottle.addInt(i);
 								}
 								outputFile << "realVoltageProx voltageProx voltageDist degreesProx degreesDist error integrError Kp Ki \n";
-								labelsBottle.addString("realVoltageProx");
-								labelsBottle.addString("voltageProx");
-								labelsBottle.addString("voltageDist");
-								labelsBottle.addString("degreesProx");
-								labelsBottle.addString("degreesDist");
-								labelsBottle.addString("error");
-								labelsBottle.addString("integrError");
-								labelsBottle.addString("Kp");
-								labelsBottle.addString("Ki");
 
 								exLog = true;
 								op7FileIsOpen = true;
 								op7Counter++;
 
-								portOutputData.writeStrict();
 							} else {
 							
                                 if (op7GlobalCounter == 0){
@@ -1626,11 +1585,23 @@ void GraspThread::run(void) {
 						}
 
 						double error = 0;
-						float ki = -1,kp = -1;
+						float ki = 0,kp = 0;
+
+
+						Bottle& currentBottle = portOutputData.prepare();
+						currentBottle.copy(op7StepBottle);
 
 						// pwm mode
 						if (op7OpMode == 0){
 							op7PWMToUse = currentTarget;
+
+							currentBottle.addDouble(0.0);
+							currentBottle.addDouble(0.0);
+							currentBottle.addDouble(0.0);
+							currentBottle.addDouble(0.0);
+							currentBottle.addDouble(0.0);
+							currentBottle.addDouble(0.0);
+
 						}
 						// control mode
 						else if (op7OpMode == 1) {
@@ -1657,18 +1628,42 @@ void GraspThread::run(void) {
 									op7PWMToUse = 0.0;
 								}
 
+								currentBottle.addDouble(0.0);
+								currentBottle.addDouble(0.0);
+								currentBottle.addDouble(0.0);
+								currentBottle.addDouble(0.0);
+								currentBottle.addDouble(0.0);
+								currentBottle.addDouble(0.0);
 
 							} else {
 
 								error = currentTarget - sumContacts[fingerToMove];
 
-								if (op7ContrType == 0 || currentContrType == 2 && error >= 0 || op7ContrType == 3 && currentContrType == 0){
+								if (currentContrType == 0 || currentContrType == 2 && error >= 0){
 									kp = op7Kp0;
 									ki = op7Ki0;
                                     if (op7IntegrError < 0 && op7EmptyIntegrError) op7IntegrError = 0;
 								} else {
 									kp = op7Kp1;
 									ki = op7Ki1;
+								}
+								if (currentContrType == 0 || currentContrType == 1){
+
+									currentBottle.addDouble(kp);
+									currentBottle.addDouble(ki);
+									currentBottle.addDouble(0.0);
+									currentBottle.addDouble(0.0);
+									currentBottle.addDouble(0.0);
+									currentBottle.addDouble(0.0);
+
+								} else if (currentContrType == 2){
+
+									currentBottle.addDouble(op7Kp0);
+									currentBottle.addDouble(op7Ki0);
+									currentBottle.addDouble(0.0);
+									currentBottle.addDouble(op7Kp1);
+									currentBottle.addDouble(op7Ki1);
+									currentBottle.addDouble(0.0);
 								}
 
 								double tustinError = (op7PreviousError + error)/2;
@@ -1696,51 +1691,44 @@ void GraspThread::run(void) {
 
                         if (op7PWMToUse > 1330) op7PWMToUse = 1330;
                         else if (op7PWMToUse < -1330) op7PWMToUse = -1330;
-						if (exLog){
+						
 
-							Bottle& dataBottle = portOutputData.prepare();
-                            dataBottle.clear();
+						double sumTaxelValues = 0.0;
 
-                            dataBottle.addString("DATA");
-
-							double sumTaxelValues = 0.0;
-
-							for (int i = 0; i < fingerTaxelValues.size(); i++){
-								outputFile << fingerTaxelValues[i] << " ";
-								dataBottle.addDouble(fingerTaxelValues[i]);
-								sumTaxelValues += fingerTaxelValues[i];
-							}
-							dataBottle.addDouble(sumTaxelValues);
-							double fingerProximalEnc,fingerDistalEnc,fingerProximalOutput,fingerDistalOutput;
-							iEncs->getEncoder(jointToMove,&fingerProximalEnc);
-							iEncs->getEncoder(jointToMove + 1,&fingerDistalEnc);
-							iOLC->getOutput(jointToMove,&fingerProximalOutput);
-							iOLC->getOutput(jointToMove + 1,&fingerDistalOutput);
-							outputFile << op7PWMToUse << " " << fingerProximalOutput << " " << fingerDistalOutput << " " << fingerProximalEnc << " " << fingerDistalEnc << " " << error << " " << op7IntegrError << " " << kp << " " << ki << "\n";
-							dataBottle.addDouble(op7PWMToUse);
-							dataBottle.addDouble(fingerProximalOutput);
-							dataBottle.addDouble(fingerDistalOutput);
-							dataBottle.addDouble(fingerProximalEnc);
-							dataBottle.addDouble(fingerDistalEnc);
-							dataBottle.addDouble(error);
-							dataBottle.addDouble(op7IntegrError);
-							dataBottle.addDouble(kp);
-							dataBottle.addDouble(ki);
-
-							portOutputData.writeStrict();
-
-							if (op7GlobalCounter == 15){
-								cout << "\t " << op7PWMToUse << "  \t" << sumContacts[fingerToMove] << " \t" << kp << " \t" << ki << " \t" << error << " \t" << op7IntegrError << "/" << op7MaxIntegrError;
-                                for (int i = 0; i < op7UsedPreviousCounter; i++){
-                                    cout << "*";
-                                }
-                                cout << "\n";
-                                op7UsedPreviousCounter = 0;
-							}
-                            
-							op7GlobalCounter++;
-                            op7GlobalCounter = op7GlobalCounter%16;
+						for (int i = 0; i < fingerTaxelValues.size(); i++){
+							outputFile << fingerTaxelValues[i] << " ";
+							currentBottle.addDouble(fingerTaxelValues[i]);
+							sumTaxelValues += fingerTaxelValues[i];
 						}
+						currentBottle.addDouble(sumTaxelValues);
+						double fingerProximalEnc,fingerDistalEnc,fingerProximalOutput,fingerDistalOutput;
+						iEncs->getEncoder(jointToMove,&fingerProximalEnc);
+						iEncs->getEncoder(jointToMove + 1,&fingerDistalEnc);
+						iOLC->getOutput(jointToMove,&fingerProximalOutput);
+						iOLC->getOutput(jointToMove + 1,&fingerDistalOutput);
+						outputFile << op7PWMToUse << " " << fingerProximalOutput << " " << fingerDistalOutput << " " << fingerProximalEnc << " " << fingerDistalEnc << " " << error << " " << op7IntegrError << " " << kp << " " << ki << "\n";
+						currentBottle.addDouble(op7PWMToUse);
+						currentBottle.addDouble(fingerProximalOutput);
+						currentBottle.addDouble(fingerDistalOutput);
+						currentBottle.addDouble(fingerProximalEnc);
+						currentBottle.addDouble(fingerDistalEnc);
+						currentBottle.addDouble(error);
+						currentBottle.addDouble(op7IntegrError);
+
+						portOutputData.writeStrict();
+
+						if (op7GlobalCounter == 15){
+							cout << "\t " << op7PWMToUse << "  \t" << sumContacts[fingerToMove] << " \t" << kp << " \t" << ki << " \t" << error << " \t" << op7IntegrError << "/" << op7MaxIntegrError;
+                            for (int i = 0; i < op7UsedPreviousCounter; i++){
+                                cout << "*";
+                            }
+                            cout << "\n";
+                            op7UsedPreviousCounter = 0;
+						}
+                        
+						op7GlobalCounter++;
+                        op7GlobalCounter = op7GlobalCounter%16;
+						
 
    						iOLC->setRefOutput(jointToMove,voltageDirection*op7PWMToUse);
                         
@@ -1979,7 +1967,6 @@ bool GraspThread::setTouchThreshold(const int aFinger, const double aThreshold) 
 				"\t- 1: dont' use Tustin " << (op7UseTustin ? "" : "X") << "\n" <<
 				"\t- 2: empty integrError " << (op7EmptyIntegrError ? "X" : "") << "\n" <<
 				"\t- 3: don't empty integrError " << (op7EmptyIntegrError ? "" : "X") << "\n" <<
-				"\t- >=10: num seconds control type 2" << (op7SecToWaitContr2) << "\n" <<
 
 				"-----------------------" << "\n";
 		return true;
@@ -2336,18 +2323,11 @@ bool GraspThread::openHand(void) {
     //iPos->positionMove(14, 0);
     //iPos->positionMove(15, 40);
 
-    // before 12/02/15
-	//iPos->positionMove(11, 5);
-    //iPos->positionMove(12, 19);
-    //iPos->positionMove(13, 3);
-    //iPos->positionMove(14, 20);
-    //iPos->positionMove(15, 17);
-
-	iPos->positionMove(11, 0);
-    iPos->positionMove(12, 0);
-    iPos->positionMove(13, 59);
-    iPos->positionMove(14, 106);
-    iPos->positionMove(15, 195);
+	iPos->positionMove(11, 5);
+    iPos->positionMove(12, 19);
+    iPos->positionMove(13, 3);
+    iPos->positionMove(14, 20);
+    iPos->positionMove(15, 17);
 
     // Check motion done
     waitMoveDone(10, 1);
@@ -2371,11 +2351,7 @@ bool GraspThread::reachArm(void) {
     //iPos->positionMove(1 , 35);
     //iPos->positionMove(2 , 18);
     //iPos->positionMove(3 , 22);
-
-    // before 12/02/15    
-    //iPos->positionMove(4 ,-13);
-    
-    
+    iPos->positionMove(4 ,-13);
     //iPos->positionMove(5 , 9);
     //iPos->positionMove(6 , -5);
     //iPos->positionMove(7 , 20);
@@ -2392,34 +2368,11 @@ bool GraspThread::reachArm(void) {
 	//iPos->positionMove(8 , 60);
 	//iPos->positionMove(9 , 36);
 	//iPos->positionMove(10, 7);
-    
-    // before 12/02/15
-    //iPos->positionMove(11, 5);
-    //iPos->positionMove(12, 19);
-    //iPos->positionMove(13, 3);
-    //iPos->positionMove(14, 20);
-    //iPos->positionMove(15, 17);
-
-    iPos->positionMove(0 ,-30);
-    iPos->positionMove(1 , 20);
-    iPos->positionMove(2 , 0);
-    iPos->positionMove(3 , 19);
-
-    iPos->positionMove(4 ,0);
-    
-    
-    iPos->positionMove(5 , 0);
-    iPos->positionMove(6 , 0);
-    iPos->positionMove(7 , 15);
-    // Hand
-    iPos->positionMove(8 , 48);
-    iPos->positionMove(9 , 0);
-    iPos->positionMove(10, 5);
-    iPos->positionMove(11, 0);
-    iPos->positionMove(12, 0);
-    iPos->positionMove(13, 59);
-    iPos->positionMove(14, 106);
-    iPos->positionMove(15, 195);
+    iPos->positionMove(11, 5);
+    iPos->positionMove(12, 19);
+    iPos->positionMove(13, 3);
+    iPos->positionMove(14, 20);
+    iPos->positionMove(15, 17);
 
     // Check motion done
     waitMoveDone(10, 1);
