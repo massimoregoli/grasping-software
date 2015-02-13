@@ -1429,7 +1429,7 @@ void GraspThread::run(void) {
 						
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
 								// unique id of the step
-								op7StepBottle.addInt((int)myDate);
+								op7StepBottle.addString(myDate);
 								// starting condition: 0 PWM 1 Control
 								op7StepBottle.addInt(0);
 								// kind of starting condition (for PWM it's always 0)
@@ -1512,7 +1512,7 @@ void GraspThread::run(void) {
 								fileName << myDate << "_T" << testNumber << "_" << currentTarget << (op7OpMode == 0 ? "P" : ctrl1.str()) << "_" << (op7ContrTypeVector[op7VectorIndex + 1] == -1 ? pwmAndTFVector[op7VectorIndex + 1] : fabs(pwmAndTFVector[op7VectorIndex + 1])) << (op7ContrTypeVector[op7VectorIndex + 1] == -1 ? "P" : ctrl2.str()) << ".csv";
 				
 								outputFile.open(fileName.str().c_str(), std::ofstream::out | std::ofstream::app);
-								op7StepBottle.addInt((int)myDate);
+								op7StepBottle.addString(myDate);
 								op7StepBottle.addInt(testNumber);
 								if (op7OpMode == 0){
 									op7StepBottle.addInt(0);
